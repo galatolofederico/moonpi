@@ -84,15 +84,11 @@ ${controller.buildModePrompt()}`,
     controller.updateUi(ctx);
 
     if (controller.state.mode === "plan" && controller.state.todos.length === 0) {
-      pi.sendMessage(
-        {
-          customType: "moonpi-plan-required",
-          content:
-            "Moonpi Plan mode requires a TODO list before the turn can finish. Use moonpi_todo to create the plan now.",
-          display: true,
-        },
-        { triggerTurn: true },
-      );
+      setImmediate(() => {
+        pi.sendUserMessage(
+          "Moonpi Plan mode requires a TODO list before the turn can finish. Use moonpi_todo to create the plan now.",
+        );
+      });
       return;
     }
 
@@ -105,13 +101,8 @@ ${controller.buildModePrompt()}`,
     if (controller.state.todos.length === 0) return;
 
     controller.switchAutoToAct(ctx);
-    pi.sendMessage(
-      {
-        customType: "moonpi-auto-act",
-        content: "Moonpi Auto mode is switching to Act phase. Execute the TODO list now.",
-        display: true,
-      },
-      { triggerTurn: true },
-    );
+    setImmediate(() => {
+      pi.sendUserMessage("Moonpi Auto mode is switching to Act phase. Execute the TODO list now.");
+    });
   });
 }
