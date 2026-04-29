@@ -144,14 +144,30 @@ export function installSprintWorkflow(pi: ExtensionAPI, controller: MoonpiContro
 
 Sprint objective: ${objective.trim()}
 
-Do exactly two things:
-1. Write SPRINT.md at ${sprintPath(ctx.cwd, sprintNumber)} — describe the sprint goal, constraints, and definition of done based on the objective.
+Before writing any files, **ask clarifying questions** using the question tool to understand the objective better. You should ask about:
+- Scope and boundaries (what's in scope, what's explicitly out of scope)
+- Technical constraints and preferences (frameworks, patterns, existing code to integrate with)
+- Acceptance criteria (what does "done" look like?)
+- Priority and ordering (what matters most?)
+- Any ambiguous aspects of the objective
+
+Only after you have enough clarity, do exactly two things:
+
+1. Write SPRINT.md at ${sprintPath(ctx.cwd, sprintNumber)} — a clear and detailed sprint document that includes:
+   - **Goal**: One-sentence summary of what this sprint delivers
+   - **Scope**: What's included and excluded
+   - **Context**: Relevant background, existing code, dependencies
+   - **Constraints**: Technical constraints, patterns to follow, things to avoid
+   - **Acceptance Criteria**: Concrete, testable conditions that define "done"
+   - **Risks & Open Questions**: Known risks and unresolved items
+
 2. Write TASKS.md at ${tasksPath(ctx.cwd, sprintNumber)} — break the objective into concrete phases with tasks and verification items.
 
 TASKS.md format requirements:
 - Each phase must be a level-2 heading: \`## Phase <number>: <title>\` (use a colon between the number and title)
 - Within each phase, list tasks as unchecked markdown checkboxes: \`- [ ] Task description\`
 - End each phase with a **Verification:** section listing how to confirm the phase is done
+- Each phase should be independently completable and verifiable
 
 Example:
 \`\`\`
@@ -165,7 +181,7 @@ Example:
 - npm run dev loads without errors
 \`\`\`
 
-Nothing else. Do not start implementing anything.`,
+Do not start implementing anything. Only create the sprint planning files.`,
       );
     },
   });
@@ -207,7 +223,7 @@ Nothing else. Do not start implementing anything.`,
       }
 
       controller.state.sprintLoop = { sprintNumber, currentPhaseId: phase.id };
-      controller.state.setMode("auto");
+      controller.state.setMode("sprint:plan");
       controller.applyMode(ctx);
       controller.persist();
       pi.sendUserMessage(buildPhaseInstruction(sprintNumber, phase));
@@ -243,7 +259,7 @@ Nothing else. Do not start implementing anything.`,
       if (!next) {
         controller.state.sprintLoop = undefined;
         controller.state.clearTodos();
-        controller.state.autoPhase = "plan";
+        controller.state.setMode("auto");
         controller.applyMode(ctx);
         controller.persist();
         return {
@@ -259,7 +275,7 @@ Nothing else. Do not start implementing anything.`,
         pendingNextPhaseId: next.id,
       };
       controller.state.clearTodos();
-      controller.state.autoPhase = "plan";
+      controller.state.setMode("sprint:plan");
       controller.applyMode(ctx);
       controller.persist();
       return {
@@ -291,9 +307,7 @@ Nothing else. Do not start implementing anything.`,
       sprintNumber: loop.sprintNumber,
       currentPhaseId: phase.id,
     };
-    if (controller.state.mode === "auto") {
-      controller.state.autoPhase = "plan";
-    }
+    controller.state.setMode("sprint:plan");
     controller.applyMode(ctx);
     controller.persist();
     continueAfterCompaction(pi, ctx, buildPhaseInstruction(loop.sprintNumber, phase));

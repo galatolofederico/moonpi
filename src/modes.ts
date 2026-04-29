@@ -108,10 +108,12 @@ export class MoonpiController {
   }
 
   updateUi(ctx: ExtensionContext): void {
-    const phase = this.state.mode === "auto" ? `:${this.state.autoPhase}` : "";
+    const isSprint = this.state.mode === "sprint:plan" || this.state.mode === "sprint:act";
+    const phase = this.state.mode === "auto" ? `:${this.state.autoPhase}` : isSprint ? `:${this.state.mode === "sprint:act" ? "act" : "plan"}` : "";
+    const modeLabel = isSprint ? "sprint" : this.state.mode;
     const total = this.state.todos.length;
     const done = this.state.todos.filter((todo) => todo.status === "done").length;
-    ctx.ui.setStatus("moonpi", ctx.ui.theme.fg("accent", `moonpi ${this.state.mode}${phase} ${done}/${total}`));
+    ctx.ui.setStatus("moonpi", ctx.ui.theme.fg("accent", `moonpi ${modeLabel}${phase} ${done}/${total}`));
 
     if (this.state.mode === "fast" || total === 0) {
       ctx.ui.setWidget("moonpi-todos", undefined);
@@ -125,6 +127,10 @@ export class MoonpiController {
     if (this.state.mode === "fast") return [...EDITING_TOOLS, ...sprintTools];
     if (this.state.mode === "act") return [...EDITING_TOOLS, TODO_TOOL, QUESTION_TOOL, ...sprintTools];
     if (this.state.mode === "plan") return [...READ_ONLY_TOOLS, TODO_TOOL, QUESTION_TOOL];
+    // sprint:plan — like auto:plan but no question tool
+    if (this.state.mode === "sprint:plan") return [...READ_ONLY_TOOLS, TODO_TOOL, END_CONVERSATION_TOOL, ...sprintTools];
+    // sprint:act — like auto:act but no question tool
+    if (this.state.mode === "sprint:act") return [...EDITING_TOOLS, TODO_TOOL, ...sprintTools];
     if (this.state.autoPhase === "act") return [...EDITING_TOOLS, TODO_TOOL, QUESTION_TOOL, ...sprintTools];
     return [...READ_ONLY_TOOLS, TODO_TOOL, QUESTION_TOOL, END_CONVERSATION_TOOL];
   }
@@ -144,6 +150,12 @@ export class MoonpiController {
     }
     if (this.state.mode === "plan") {
       return `Moonpi Plan mode is active. You cannot use bash, write, or edit tools. Explore with read-only tools, ask questions with question when needed, and you must create or update the TODO list with todo before ending the turn.${sprintText}\n\nCurrent TODO state:\n${todoText}`;
+    }
+    if (this.state.mode === "sprint:plan") {
+      return `Moonpi Sprint Plan mode is active. You cannot use bash, write, or edit tools, and the question tool is not available. Explore with read-only tools, you must create or update the TODO list with todo before ending the turn. If something is unclear, make your best judgment and document assumptions in the TODO items.${sprintText}\n\nCurrent TODO state:\n${todoText}`;
+    }
+    if (this.state.mode === "sprint:act") {
+      return `Moonpi Sprint Act mode is active. Editing tools are available but the question tool is not. Execute the TODO list, update TODO statuses with todo as work progresses, and make your best judgment when blocked.${sprintText}\n\nCurrent TODO state:\n${todoText}`;
     }
     if (this.state.autoPhase === "act") {
       return `Moonpi Auto mode is in Act phase. Execute the TODO list, update TODO statuses with todo as work progresses, and ask questions only when blocked.${sprintText}\n\nCurrent TODO state:\n${todoText}`;

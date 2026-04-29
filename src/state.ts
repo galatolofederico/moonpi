@@ -42,7 +42,7 @@ export class MoonpiState {
 
   resetForUserPrompt(): void {
     this.endConversationRequested = false;
-    if (this.mode === "auto") {
+    if (this.mode === "auto" || this.mode === "sprint:plan" || this.mode === "sprint:act") {
       this.autoPhase = "plan";
       this.todos = [];
       this.nextTodoId = 1;
@@ -52,8 +52,8 @@ export class MoonpiState {
   setMode(mode: MoonpiMode): void {
     this.mode = mode;
     this.endConversationRequested = false;
-    if (mode === "auto") {
-      this.autoPhase = "plan";
+    if (mode === "auto" || mode === "sprint:plan" || mode === "sprint:act") {
+      this.autoPhase = mode === "sprint:act" ? "act" : "plan";
     }
   }
 

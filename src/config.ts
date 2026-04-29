@@ -30,6 +30,11 @@ function isMode(value: unknown): value is MoonpiMode {
   return value === "plan" || value === "act" || value === "auto" || value === "fast";
 }
 
+/** User-selectable modes for config defaults (excludes sprint internal modes). */
+function isSelectableMode(value: unknown): value is MoonpiMode {
+  return value === "plan" || value === "act" || value === "auto" || value === "fast";
+}
+
 function readJsonFile(filePath: string): Record<string, unknown> | undefined {
   if (!existsSync(filePath)) return undefined;
   const parsed = JSON.parse(readFileSync(filePath, "utf-8")) as unknown;
@@ -52,7 +57,7 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
     keybindings: { ...base.keybindings },
   };
 
-  if (isMode(raw.defaultMode)) next.defaultMode = raw.defaultMode;
+  if (isSelectableMode(raw.defaultMode)) next.defaultMode = raw.defaultMode;
   if (typeof raw.preserveExternalTools === "boolean") next.preserveExternalTools = raw.preserveExternalTools;
 
   if (isRecord(raw.contextFiles)) {

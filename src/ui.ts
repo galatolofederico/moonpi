@@ -49,6 +49,10 @@ function borderForMode(theme: Theme, mode: MoonpiMode): (text: string) => string
       return (text) => theme.fg("accent", text);
     case "fast":
       return (text) => theme.fg("error", text);
+    case "sprint:plan":
+      return (text) => theme.fg("warning", text);
+    case "sprint:act":
+      return (text) => theme.fg("success", text);
   }
 }
 

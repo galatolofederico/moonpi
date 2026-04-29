@@ -76,7 +76,7 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
     ],
     parameters: TodoParamsSchema,
     async execute(_toolCallId, params: TodoParams, _signal, _onUpdate, ctx) {
-      const wasAutoPlanning = controller.state.mode === "auto" && controller.state.autoPhase === "plan";
+      const wasAutoPlanning = (controller.state.mode === "auto" && controller.state.autoPhase === "plan") || controller.state.mode === "sprint:plan";
       if (controller.state.mode === "fast") {
         return {
           content: [{ type: "text", text: "todo is disabled in Fast mode." }],
@@ -137,7 +137,9 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
       controller.updateUi(ctx);
       controller.persist();
       const suffix = shouldEndAutoPlan
-        ? "\n\nMoonpi Auto planning is complete. The next turn will switch to Act mode with editing tools enabled."
+        ? controller.state.mode === "sprint:plan"
+          ? "\n\nMoonpi Sprint planning is complete. The next turn will switch to Sprint Act mode with editing tools enabled."
+          : "\n\nMoonpi Auto planning is complete. The next turn will switch to Act mode with editing tools enabled."
         : "";
       return {
         content: [{ type: "text", text: `Current TODO list:\n${formatTodoList(controller.state.todos)}${suffix}` }],
@@ -168,8 +170,8 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
     ],
     parameters: QuestionParamsSchema,
     async execute(_toolCallId, params: QuestionParams, _signal, _onUpdate, ctx) {
-      if (controller.state.mode === "fast") {
-        return { content: [{ type: "text", text: "question is disabled in Fast mode." }], details: undefined };
+      if (controller.state.mode === "fast" || controller.state.mode === "sprint:plan" || controller.state.mode === "sprint:act") {
+        return { content: [{ type: "text", text: "question is disabled in Sprint and Fast modes." }], details: undefined };
       }
       if (!ctx.hasUI) {
         return { content: [{ type: "text", text: "Error: interactive UI is not available." }], details: undefined };

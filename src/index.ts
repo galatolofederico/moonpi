@@ -11,7 +11,7 @@ import type { MoonpiMode } from "./types.js";
 const MODES: MoonpiMode[] = ["plan", "act", "auto", "fast"];
 
 function isMoonpiMode(value: string): value is MoonpiMode {
-  return value === "plan" || value === "act" || value === "auto" || value === "fast";
+  return value === "plan" || value === "act" || value === "auto" || value === "fast" || value === "sprint:plan" || value === "sprint:act";
 }
 
 export default async function moonpi(pi: ExtensionAPI): Promise<void> {
@@ -31,12 +31,17 @@ export default async function moonpi(pi: ExtensionAPI): Promise<void> {
     handler: async (args, ctx) => {
       const requested = args.trim();
       if (!requested) {
-        const selected = await ctx.ui.select("moonpi mode", [...MODES]);
+        const selectable = MODES; // MODES only contains user-selectable modes, not sprint:plan/sprint:act
+        const selected = await ctx.ui.select("moonpi mode", [...selectable]);
         if (selected && isMoonpiMode(selected)) controller.setMode(ctx, selected);
         return;
       }
       if (!isMoonpiMode(requested)) {
         ctx.ui.notify(`Unknown moonpi mode: ${requested}`, "error");
+        return;
+      }
+      if (requested === "sprint:plan" || requested === "sprint:act") {
+        ctx.ui.notify(`Mode ${requested} cannot be set manually. It is managed by the sprint loop.`, "error");
         return;
       }
       controller.setMode(ctx, requested);
@@ -83,11 +88,33 @@ ${controller.buildModePrompt()}`,
   pi.on("agent_end", async (_event, ctx) => {
     controller.updateUi(ctx);
 
-    if (controller.state.mode === "plan" && controller.state.todos.length === 0) {
+    const isPlanMode = controller.state.mode === "plan" || controller.state.mode === "sprint:plan";
+    if (isPlanMode && controller.state.todos.length === 0) {
       setImmediate(() => {
         pi.sendUserMessage(
           "Moonpi Plan mode requires a TODO list before the turn can finish. Use todo to create the plan now.",
         );
+      });
+      return;
+    }
+
+    // sprint:act completed → back to sprint:plan
+    if (controller.state.mode === "sprint:act") {
+      controller.state.setMode("sprint:plan");
+      controller.state.todos = [];
+      controller.state.nextTodoId = 1;
+      controller.applyMode(ctx);
+      controller.persist();
+      return;
+    }
+
+    // sprint:plan completed with TODOs → switch to sprint:act
+    if (controller.state.mode === "sprint:plan" && controller.state.todos.length > 0) {
+      controller.state.setMode("sprint:act");
+      controller.applyMode(ctx);
+      controller.persist();
+      setImmediate(() => {
+        pi.sendUserMessage("Moonpi Sprint mode is switching to Act phase. Execute the TODO list now.");
       });
       return;
     }

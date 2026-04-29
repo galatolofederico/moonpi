@@ -1,4 +1,4 @@
-export type MoonpiMode = "plan" | "act" | "auto" | "fast";
+export type MoonpiMode = "plan" | "act" | "auto" | "fast" | "sprint:plan" | "sprint:act";
 
 export type AutoPhase = "plan" | "act";
 
