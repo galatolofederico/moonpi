@@ -162,7 +162,20 @@ Nothing else. Do not start implementing anything.`,
         return;
       }
 
-      const sprintNumber = sprints[sprints.length - 1]!;
+      let sprintNumber: number;
+      if (sprints.length === 1) {
+        sprintNumber = sprints[0]!;
+      } else {
+        const options = sprints
+          .slice()
+          .reverse()
+          .map((n) => `Sprint ${n}`);
+        const selected = await ctx.ui.select("Select sprint", options);
+        if (!selected) return;
+        const match = /^Sprint (\d+)$/.exec(selected);
+        if (!match) return;
+        sprintNumber = Number.parseInt(match[1]!, 10);
+      }
 
       let phase: Phase | undefined;
       try {
@@ -177,7 +190,7 @@ Nothing else. Do not start implementing anything.`,
       }
 
       controller.state.sprintLoop = { sprintNumber, currentPhaseId: phase.id };
-      controller.state.setMode("act");
+      controller.state.setMode("auto");
       controller.applyMode(ctx);
       controller.persist();
       pi.sendUserMessage(buildPhaseInstruction(sprintNumber, phase));
@@ -212,6 +225,8 @@ Nothing else. Do not start implementing anything.`,
       const next = nextIncompletePhase(ctx.cwd, sprintNumber);
       if (!next) {
         controller.state.sprintLoop = undefined;
+        controller.state.clearTodos();
+        controller.state.autoPhase = "plan";
         controller.applyMode(ctx);
         controller.persist();
         return {
@@ -226,6 +241,8 @@ Nothing else. Do not start implementing anything.`,
         currentPhaseId: phaseId,
         pendingNextPhaseId: next.id,
       };
+      controller.state.clearTodos();
+      controller.state.autoPhase = "plan";
       controller.applyMode(ctx);
       controller.persist();
       return {
@@ -257,6 +274,9 @@ Nothing else. Do not start implementing anything.`,
       sprintNumber: loop.sprintNumber,
       currentPhaseId: phase.id,
     };
+    if (controller.state.mode === "auto") {
+      controller.state.autoPhase = "plan";
+    }
     controller.applyMode(ctx);
     controller.persist();
     continueAfterCompaction(pi, ctx, buildPhaseInstruction(loop.sprintNumber, phase));
