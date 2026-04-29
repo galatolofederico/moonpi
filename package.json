@@ -1,0 +1,36 @@
+{
+  "name": "moonpi",
+  "version": "0.1.0",
+  "description": "Plan, Act, Auto, Fast, TODO, context, and sprint workflows for pi.",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "coding-agent"
+  ],
+  "scripts": {
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-ai": "*",
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@mariozechner/pi-ai": "^0.70.6",
+    "@mariozechner/pi-coding-agent": "^0.70.6",
+    "@mariozechner/pi-tui": "^0.70.6",
+    "@types/node": "^24.3.0",
+    "typebox": "^1.1.24",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20.6.0"
+  }
+}
