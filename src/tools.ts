@@ -54,6 +54,7 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
     ],
     parameters: TodoParamsSchema,
     async execute(_toolCallId, params: TodoParams, _signal, _onUpdate, ctx) {
+      const wasAutoPlanning = controller.state.mode === "auto" && controller.state.autoPhase === "plan";
       if (controller.state.mode === "fast") {
         return {
           content: [{ type: "text", text: "moonpi_todo is disabled in Fast mode." }],
@@ -110,11 +111,16 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
           break;
       }
 
-      controller.applyMode(ctx);
+      const shouldEndAutoPlan = wasAutoPlanning && params.action !== "list" && controller.state.todos.length > 0;
+      controller.updateUi(ctx);
       controller.persist();
+      const suffix = shouldEndAutoPlan
+        ? "\n\nMoonpi Auto planning is complete. The next turn will switch to Act mode with editing tools enabled."
+        : "";
       return {
-        content: [{ type: "text", text: `Current TODO list:\n${formatTodoList(controller.state.todos)}` }],
+        content: [{ type: "text", text: `Current TODO list:\n${formatTodoList(controller.state.todos)}${suffix}` }],
         details: { todos: controller.state.todos } satisfies TodoDetails,
+        terminate: shouldEndAutoPlan,
       };
     },
     renderResult(result, _options, theme) {
