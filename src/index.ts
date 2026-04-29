@@ -14,14 +14,14 @@ function isMoonpiMode(value: string): value is MoonpiMode {
   return value === "plan" || value === "act" || value === "auto" || value === "fast";
 }
 
-export default function moonpi(pi: ExtensionAPI): void {
+export default async function moonpi(pi: ExtensionAPI): Promise<void> {
   const controller = new MoonpiController(pi);
 
   installMoonpiTools(pi, controller);
   installGuards(pi, controller);
   installContextFiles(pi, controller);
   installSprintWorkflow(pi, controller);
-  installSynthetic(pi);
+  await installSynthetic(pi);
 
   pi.registerCommand("moonpi:mode", {
     description: "Switch moonpi mode: plan, act, auto, fast",

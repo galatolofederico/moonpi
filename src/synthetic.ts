@@ -1,9 +1,10 @@
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
-import { SYNTHETIC_MODELS } from "./synthetic-models.js";
+import type { ExtensionAPI, ExtensionCommandContext, ProviderModelConfig } from "@mariozechner/pi-coding-agent";
+import { SYNTHETIC_MODELS_FALLBACK, parseSyntheticModels } from "./synthetic-models.js";
 
 const SYNTHETIC_PROVIDER = "synthetic";
 const SYNTHETIC_API_KEY_ENV = "SYNTHETIC_API_KEY";
 const SYNTHETIC_OPENAI_BASE_URL = "https://api.synthetic.new/openai/v1";
+const SYNTHETIC_MODELS_URL = "https://api.synthetic.new/openai/v1/models";
 const SYNTHETIC_QUOTAS_URL = "https://api.synthetic.new/v2/quotas";
 const FETCH_TIMEOUT_MS = 15_000;
 
@@ -183,6 +184,36 @@ async function getSyntheticApiKey(ctx: ExtensionCommandContext): Promise<string>
   return storedKey ?? process.env[SYNTHETIC_API_KEY_ENV] ?? "";
 }
 
+async function fetchSyntheticModels(apiKey: string, signal?: AbortSignal): Promise<ProviderModelConfig[] | null> {
+  if (!apiKey) return null;
+
+  const signals = [AbortSignal.timeout(FETCH_TIMEOUT_MS)];
+  if (signal) signals.push(signal);
+  const combinedSignal = AbortSignal.any(signals);
+
+  try {
+    const headers: Record<string, string> = {
+      "X-Title": "moonpi",
+    };
+    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+
+    const response = await fetch(SYNTHETIC_MODELS_URL, {
+      headers,
+      signal: combinedSignal,
+    });
+
+    if (!response.ok) return null;
+
+    const payload = await response.json();
+    const models = Array.isArray(payload) ? payload : payload.data;
+    if (!Array.isArray(models)) return null;
+
+    return parseSyntheticModels(models);
+  } catch {
+    return null;
+  }
+}
+
 async function handleQuotasCommand(ctx: ExtensionCommandContext): Promise<void> {
   const apiKey = await getSyntheticApiKey(ctx);
   const result = await fetchSyntheticQuotas(apiKey, ctx.signal);
@@ -194,7 +225,11 @@ async function handleQuotasCommand(ctx: ExtensionCommandContext): Promise<void> 
   ctx.ui.notify(formatSyntheticQuotas(result.data.quotas), "info");
 }
 
-export function installSynthetic(pi: ExtensionAPI): void {
+export async function installSynthetic(pi: ExtensionAPI): Promise<void> {
+  const apiKey = process.env[SYNTHETIC_API_KEY_ENV] ?? "";
+  const fetchedModels = await fetchSyntheticModels(apiKey);
+  const models = fetchedModels ?? SYNTHETIC_MODELS_FALLBACK;
+
   pi.registerProvider(SYNTHETIC_PROVIDER, {
     baseUrl: SYNTHETIC_OPENAI_BASE_URL,
     apiKey: SYNTHETIC_API_KEY_ENV,
@@ -203,7 +238,7 @@ export function installSynthetic(pi: ExtensionAPI): void {
       Referer: "https://github.com/myname/moonpi",
       "X-Title": "moonpi",
     },
-    models: SYNTHETIC_MODELS,
+    models,
   });
 
   pi.registerCommand("synthetic:quotas", {

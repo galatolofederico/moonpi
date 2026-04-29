@@ -8,7 +8,7 @@ const SYNTHETIC_REASONING_EFFORT_MAP = {
   xhigh: "high",
 } as const;
 
-export const SYNTHETIC_MODELS: ProviderModelConfig[] = [
+export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
   {
     id: "hf:zai-org/GLM-4.7",
     name: "zai-org/GLM-4.7",
@@ -284,3 +284,76 @@ export const SYNTHETIC_MODELS: ProviderModelConfig[] = [
     maxTokens: 65536,
   },
 ];
+
+interface SyntheticModelResponse {
+  id: string;
+  name: string;
+  input_modalities: string[];
+  output_modalities: string[];
+  context_length: number;
+  max_output_length: number;
+  pricing: {
+    prompt: string;
+    completion: string;
+    image: string;
+    request: string;
+    input_cache_reads: string;
+    input_cache_writes: string;
+  };
+  supported_features: string[];
+  quantization?: string;
+}
+
+const MODEL_COMPAT_OVERRIDES: Record<string, Partial<NonNullable<ProviderModelConfig["compat"]>>> = {
+  "hf:zai-org/GLM-5.1": {
+    supportsDeveloperRole: false,
+  },
+  "hf:MiniMaxAI/MiniMax-M2.5": {
+    maxTokensField: "max_completion_tokens",
+  },
+};
+
+function parsePricingValue(value: string): number {
+  if (!value || value === "0") return 0;
+  const num = parseFloat(value.replace(/^\$/, ""));
+  if (Number.isNaN(num)) return 0;
+  return num * 1_000_000;
+}
+
+export function parseSyntheticModels(data: SyntheticModelResponse[]): ProviderModelConfig[] {
+  return data.map((model) => {
+    const hasReasoning = model.supported_features?.includes("reasoning") ?? false;
+    const input: ("text" | "image")[] = [];
+    if (model.input_modalities?.includes("text")) input.push("text");
+    if (model.input_modalities?.includes("image")) input.push("image");
+    if (input.length === 0) input.push("text");
+
+    const config: ProviderModelConfig = {
+      id: model.id,
+      name: model.name,
+      reasoning: hasReasoning,
+      input,
+      cost: {
+        input: parsePricingValue(model.pricing?.prompt ?? "0"),
+        output: parsePricingValue(model.pricing?.completion ?? "0"),
+        cacheRead: parsePricingValue(model.pricing?.input_cache_reads ?? "0"),
+        cacheWrite: parsePricingValue(model.pricing?.input_cache_writes ?? "0"),
+      },
+      contextWindow: model.context_length ?? 128000,
+      maxTokens: model.max_output_length ?? 4096,
+    };
+
+    const overrides = MODEL_COMPAT_OVERRIDES[model.id];
+    if (hasReasoning) {
+      config.compat = {
+        supportsReasoningEffort: true,
+        reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
+        ...overrides,
+      };
+    } else if (overrides) {
+      config.compat = { ...overrides };
+    }
+
+    return config;
+  });
+}
