@@ -116,8 +116,9 @@ export function formatTodoList(todos: TodoItem[]): string {
   if (todos.length === 0) return "No TODO items.";
   return todos
     .map((todo) => {
+      const statusSymbol = todo.status === "done" ? "✓" : todo.status === "in_progress" ? "~" : " ";
       const notes = todo.notes ? ` (${todo.notes})` : "";
-      return `#${todo.id} [${todo.status}] ${todo.text}${notes}`;
+      return `[${statusSymbol}] ${todo.text}${notes}`;
     })
     .join("\n");
 }
