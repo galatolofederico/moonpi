@@ -41,6 +41,24 @@ Create `.pi/moonpi.json` in a project:
 
 Use `/moonpi:settings` to view the effective settings.
 
+## Synthetic Provider
+
+Moonpi registers Synthetic as the `synthetic` provider using the OpenAI-compatible endpoint.
+
+Configure credentials with either:
+
+```bash
+export SYNTHETIC_API_KEY=...
+```
+
+or run:
+
+```text
+/login synthetic
+```
+
+Use `/model` to select a `synthetic` model. Use `/synthetic:quotas` to show the current Synthetic subscription and usage quotas.
+
 ## Sprint Commands
 
 - `/sprint:create <project>` asks clarifying questions and creates `SPRINT.md` and `TASKS.md` under `./sprints/<number>`.

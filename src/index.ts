@@ -4,6 +4,7 @@ import { installContextFiles } from "./context-files.js";
 import { installGuards } from "./guards.js";
 import { MoonpiController } from "./modes.js";
 import { installSprintWorkflow } from "./sprint.js";
+import { installSynthetic } from "./synthetic.js";
 import { installMoonpiTools } from "./tools.js";
 import type { MoonpiMode } from "./types.js";
 
@@ -20,6 +21,7 @@ export default function moonpi(pi: ExtensionAPI): void {
   installGuards(pi, controller);
   installContextFiles(pi, controller);
   installSprintWorkflow(pi, controller);
+  installSynthetic(pi);
 
   pi.registerCommand("moonpi:mode", {
     description: "Switch moonpi mode: plan, act, auto, fast",
