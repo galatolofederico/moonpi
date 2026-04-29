@@ -86,7 +86,7 @@ ${controller.buildModePrompt()}`,
     if (controller.state.mode === "plan" && controller.state.todos.length === 0) {
       setImmediate(() => {
         pi.sendUserMessage(
-          "Moonpi Plan mode requires a TODO list before the turn can finish. Use moonpi_todo to create the plan now.",
+          "Moonpi Plan mode requires a TODO list before the turn can finish. Use todo to create the plan now.",
         );
       });
       return;

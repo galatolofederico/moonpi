@@ -43,21 +43,21 @@ const EndConversationParamsSchema = Type.Object({
 
 export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiController): void {
   pi.registerTool({
-    name: "moonpi_todo",
+    name: "todo",
     label: "moonpi todo",
     description:
       "Create, replace, update, remove, clear, or list the active TODO list. Always use this in Plan mode and Auto planning before implementation.",
     promptSnippet: "Manage the required moonpi TODO list",
     promptGuidelines: [
-      "Use moonpi_todo to create concrete, ordered TODO items before acting in Plan or Auto planning.",
-      "When a TODO item changes, update it with moonpi_todo so the current list is returned.",
+      "Use todo to create concrete, ordered TODO items before acting in Plan or Auto planning.",
+      "When a TODO item changes, update it with todo so the current list is returned.",
     ],
     parameters: TodoParamsSchema,
     async execute(_toolCallId, params: TodoParams, _signal, _onUpdate, ctx) {
       const wasAutoPlanning = controller.state.mode === "auto" && controller.state.autoPhase === "plan";
       if (controller.state.mode === "fast") {
         return {
-          content: [{ type: "text", text: "moonpi_todo is disabled in Fast mode." }],
+          content: [{ type: "text", text: "todo is disabled in Fast mode." }],
           details: { todos: controller.state.todos } satisfies TodoDetails,
         };
       }
@@ -133,14 +133,14 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
   });
 
   pi.registerTool({
-    name: "moonpi_question",
+    name: "question",
     label: "moonpi question",
     description: "Ask the user a clarifying question when a decision is required before continuing.",
     promptSnippet: "Ask the user a concise clarifying question",
     parameters: QuestionParamsSchema,
     async execute(_toolCallId, params: QuestionParams, _signal, _onUpdate, ctx) {
       if (controller.state.mode === "fast") {
-        return { content: [{ type: "text", text: "moonpi_question is disabled in Fast mode." }], details: undefined };
+        return { content: [{ type: "text", text: "question is disabled in Fast mode." }], details: undefined };
       }
       if (!ctx.hasUI) {
         return { content: [{ type: "text", text: "Error: interactive UI is not available." }], details: undefined };

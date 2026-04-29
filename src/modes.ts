@@ -9,8 +9,8 @@ import { installMoonpiEditor } from "./ui.js";
 const MODE_ORDER: MoonpiMode[] = ["plan", "act", "auto", "fast"];
 const READ_ONLY_TOOLS = ["read", "grep", "find", "ls"];
 const EDITING_TOOLS = ["read", "grep", "find", "ls", "bash", "edit", "write"];
-const TODO_TOOL = "moonpi_todo";
-const QUESTION_TOOL = "moonpi_question";
+const TODO_TOOL = "todo";
+const QUESTION_TOOL = "question";
 const END_CONVERSATION_TOOL = "end_conversation";
 const END_PHASE_TOOL = "end_phase";
 
@@ -142,11 +142,11 @@ export class MoonpiController {
       return `Moonpi Act mode is active. Editing tools are available. The TODO and Q&A tools are available when useful.${sprintText}\n\nCurrent TODO state:\n${todoText}`;
     }
     if (this.state.mode === "plan") {
-      return `Moonpi Plan mode is active. You cannot use bash, write, or edit tools. Explore with read-only tools, ask questions with moonpi_question when needed, and you must create or update the TODO list with moonpi_todo before ending the turn.${sprintText}\n\nCurrent TODO state:\n${todoText}`;
+      return `Moonpi Plan mode is active. You cannot use bash, write, or edit tools. Explore with read-only tools, ask questions with question when needed, and you must create or update the TODO list with todo before ending the turn.${sprintText}\n\nCurrent TODO state:\n${todoText}`;
     }
     if (this.state.autoPhase === "act") {
-      return `Moonpi Auto mode is in Act phase. Execute the TODO list, update TODO statuses with moonpi_todo as work progresses, and ask questions only when blocked.${sprintText}\n\nCurrent TODO state:\n${todoText}`;
+      return `Moonpi Auto mode is in Act phase. Execute the TODO list, update TODO statuses with todo as work progresses, and ask questions only when blocked.${sprintText}\n\nCurrent TODO state:\n${todoText}`;
     }
-    return `Moonpi Auto mode is in Plan phase. First inspect and plan. Use moonpi_todo to produce a concrete TODO list before any edits. If the user only asked a question or no work is needed, call end_conversation instead of producing a TODO list.${sprintText}\n\nCurrent TODO state:\n${todoText}`;
+    return `Moonpi Auto mode is in Plan phase. First inspect and plan. Use todo to produce a concrete TODO list before any edits. If the user only asked a question or no work is needed, call end_conversation instead of producing a TODO list.${sprintText}\n\nCurrent TODO state:\n${todoText}`;
   }
 }

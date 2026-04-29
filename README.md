@@ -51,10 +51,10 @@ moonpi provides four modes (Auto Mode has two phases):
 
 | Mode | Available Tools | Description |
 | --- | --- | --- |
-| **Plan Mode** | `read`, `grep`, `find`, `ls`, `moonpi_todo`, `moonpi_question` | Used to reason about the task before making changes. The model must produce a TODO list. No file modifications or shell commands are allowed. |
-| **Act Mode** | `read`, `grep`, `find`, `ls`, `bash`, `edit`, `write`, `moonpi_todo`, `moonpi_question` (+ `end_phase` in sprint loop) | Used to execute work. The model can read, write, edit, and run commands. TODO and QnA can be used when helpful, but are not mandatory. |
-| **Auto Mode** (Plan phase) | `read`, `grep`, `find`, `ls`, `moonpi_todo`, `moonpi_question`, `end_conversation` | Default mode. The model first plans, then acts while retaining the full planning conversation history. During the planning phase, an `end_conversation` tool is available for question-only requests that do not need a TODO list. |
-| **Auto Mode** (Act phase) | `read`, `grep`, `find`, `ls`, `bash`, `edit`, `write`, `moonpi_todo`, `moonpi_question` (+ `end_phase` in sprint loop) | After planning, the model executes the TODO list with full planning context intact. |
+| **Plan Mode** | `read`, `grep`, `find`, `ls`, `todo`, `question` | Used to reason about the task before making changes. The model must produce a TODO list. No file modifications or shell commands are allowed. |
+| **Act Mode** | `read`, `grep`, `find`, `ls`, `bash`, `edit`, `write`, `todo`, `question` (+ `end_phase` in sprint loop) | Used to execute work. The model can read, write, edit, and run commands. TODO and QnA can be used when helpful, but are not mandatory. |
+| **Auto Mode** (Plan phase) | `read`, `grep`, `find`, `ls`, `todo`, `question`, `end_conversation` | Default mode. The model first plans, then acts while retaining the full planning conversation history. During the planning phase, an `end_conversation` tool is available for question-only requests that do not need a TODO list. |
+| **Auto Mode** (Act phase) | `read`, `grep`, `find`, `ls`, `bash`, `edit`, `write`, `todo`, `question` (+ `end_phase` in sprint loop) | After planning, the model executes the TODO list with full planning context intact. |
 | **Fast Mode** | `read`, `grep`, `find`, `ls`, `bash`, `edit`, `write` (+ `end_phase` in sprint loop) | Direct execution mode. No planning requirement, no TODO list, no QnA. Useful for quick edits and simple tasks. |
 
 Modes can be cycled using:
