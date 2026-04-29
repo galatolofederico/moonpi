@@ -36,6 +36,20 @@ If these **resonate** with you, you might **find** this set of extensions **usef
 - **Loops are stupidly simple.**  
   A specification file, a TODO list, and auto-compaction after every phase are more than enough for most use cases.
 
+## Installation
+
+First, install the base `pi` coding agent globally:
+
+```bash
+npm install -g @mariozechner/pi-coding-agent
+```
+
+Then, install the `moonpi` extension set directly via `pi`:
+
+```bash
+pi install git:github.com/galatolofederico/moonpi@v0.1
+```
+
 
 ## Features
 
