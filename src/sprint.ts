@@ -62,7 +62,7 @@ function parsePhases(tasks: string): Phase[] {
   const lines = tasks.split("\n");
   const headings: Array<{ id: string; title: string; line: number }> = [];
   for (let index = 0; index < lines.length; index += 1) {
-    const match = /^## Phase\s+([^:]+):\s*(.+)$/.exec(lines[index] ?? "");
+    const match = /^## Phase\s+([^:—\-–]+)\s*[:—–-]\s*(.+)$/.exec(lines[index] ?? "");
     if (match) headings.push({ id: match[1]?.trim() ?? "", title: match[2]?.trim() ?? "", line: index });
   }
 
@@ -147,6 +147,23 @@ Sprint objective: ${objective.trim()}
 Do exactly two things:
 1. Write SPRINT.md at ${sprintPath(ctx.cwd, sprintNumber)} — describe the sprint goal, constraints, and definition of done based on the objective.
 2. Write TASKS.md at ${tasksPath(ctx.cwd, sprintNumber)} — break the objective into concrete phases with tasks and verification items.
+
+TASKS.md format requirements:
+- Each phase must be a level-2 heading: \`## Phase <number>: <title>\` (use a colon between the number and title)
+- Within each phase, list tasks as unchecked markdown checkboxes: \`- [ ] Task description\`
+- End each phase with a **Verification:** section listing how to confirm the phase is done
+
+Example:
+```
+## Phase 1: Project Scaffolding
+
+- [ ] Initialize project structure
+- [ ] Create base HTML shell
+- [ ] Set up dev server
+
+**Verification:**
+- npm run dev loads without errors
+```
 
 Nothing else. Do not start implementing anything.`,
       );
