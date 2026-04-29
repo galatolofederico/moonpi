@@ -37,13 +37,18 @@ function sprintPath(cwd: string, sprintNumber: number): string {
   return join(sprintDir(cwd, sprintNumber), "SPRINT.md");
 }
 
-function nextSprintNumber(cwd: string): number {
+function listSprintNumbers(cwd: string): number[] {
   const dir = sprintsDir(cwd);
-  if (!existsSync(dir)) return 1;
-  const numbers = readdirSync(dir, { withFileTypes: true })
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => Number.parseInt(entry.name, 10))
-    .filter((value) => Number.isInteger(value) && value > 0);
+    .filter((value) => Number.isInteger(value) && value > 0)
+    .sort((a, b) => a - b);
+}
+
+function nextSprintNumber(cwd: string): number {
+  const numbers = listSprintNumbers(cwd);
   return numbers.length === 0 ? 1 : Math.max(...numbers) + 1;
 }
 
@@ -193,11 +198,6 @@ async function askRequired(ctx: ExtensionCommandContext, title: string, prefill:
   return answer?.trim();
 }
 
-function parseSprintNumber(raw: string): number | undefined {
-  const number = Number.parseInt(raw.trim(), 10);
-  return Number.isInteger(number) && number > 0 ? number : undefined;
-}
-
 function continueAfterCompaction(pi: ExtensionAPI, ctx: ExtensionContext, prompt: string): void {
   ctx.compact({
     customInstructions: "Moonpi sprint loop completed one phase. Preserve the sprint goal, completed phase summary, and next phase instructions.",
@@ -209,12 +209,9 @@ function continueAfterCompaction(pi: ExtensionAPI, ctx: ExtensionContext, prompt
 export function installSprintWorkflow(pi: ExtensionAPI, controller: MoonpiController): void {
   pi.registerCommand("sprint:create", {
     description: "Create a moonpi sprint under ./sprints/<number>",
-    handler: async (args, ctx) => {
-      const project = args.trim();
-      if (!project) {
-        ctx.ui.notify("Usage: /sprint:create <big project>", "error");
-        return;
-      }
+    handler: async (_args, ctx) => {
+      const project = await askRequired(ctx, "Sprint description", "");
+      if (!project) return;
 
       const outcome = await askRequired(ctx, "Sprint outcome", project);
       if (!outcome) return;
@@ -230,12 +227,20 @@ export function installSprintWorkflow(pi: ExtensionAPI, controller: MoonpiContro
 
   pi.registerCommand("sprint:loop", {
     description: "Execute the next incomplete phase in ./sprints/<number>/TASKS.md",
-    handler: async (args, ctx) => {
-      const sprintNumber = parseSprintNumber(args);
-      if (!sprintNumber) {
-        ctx.ui.notify("Usage: /sprint:loop <sprint_number>", "error");
+    handler: async (_args, ctx) => {
+      const sprints = listSprintNumbers(ctx.cwd);
+      if (sprints.length === 0) {
+        ctx.ui.notify("No sprints found. Use /sprint:create to create one.", "error");
         return;
       }
+
+      const latestSprint = sprints[sprints.length - 1]!;
+      const options = sprints.map((n) => `Sprint ${n}`).reverse(); // latest first
+      const selected = await ctx.ui.select("Select a sprint to loop", options);
+      if (!selected) return;
+
+      const match = /^Sprint (\d+)$/.exec(selected);
+      const sprintNumber = match ? Number.parseInt(match[1]!, 10) : latestSprint;
 
       let phase: Phase | undefined;
       try {
