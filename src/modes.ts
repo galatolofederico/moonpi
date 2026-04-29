@@ -4,7 +4,7 @@ import { matchesKey } from "@mariozechner/pi-tui";
 import { loadMoonpiConfig } from "./config.js";
 import { MoonpiState, formatTodoList } from "./state.js";
 import type { MoonpiConfig, MoonpiMode, MoonpiSnapshot } from "./types.js";
-import { installMoonpiEditor } from "./ui.js";
+import { installMoonpiEditor, installMoonpiHeader } from "./ui.js";
 
 const MODE_ORDER: MoonpiMode[] = ["plan", "act", "auto", "fast"];
 const READ_ONLY_TOOLS = ["read", "grep", "find", "ls"];
@@ -85,6 +85,7 @@ export class MoonpiController {
   }
 
   installUi(ctx: ExtensionContext): void {
+    installMoonpiHeader(ctx);
     installMoonpiEditor(ctx, () => this.state.mode);
     this.terminalInputUnsubscribe?.();
     this.terminalInputUnsubscribe = ctx.ui.onTerminalInput((data) => {
