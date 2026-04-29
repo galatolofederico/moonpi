@@ -1,7 +1,12 @@
-# 🌕 moonpi
-> *opinionated set of extensions for pi*
+<p align="center">
+  <img src="assets/moonpi-logo.svg" alt="moonpi" width="520" />
+</p>
+<p align="center"><em>opinionated set of extensions for pi</em></p>
 
-Welcome to **moonpi**. This is set of extensions for [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) **that are actually useful for a coding agent.** No fluff. No over-engineered architecture. Just practical guardrails, structured workflows, and pragmatism.
+---
+
+**moonpi** is set of extensions for [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) **that are actually useful** for a coding agent.
+No fluff. No over-engineered architecture. Just practical guardrails, structured workflows, and pragmatism.
 
 ---
 
@@ -57,10 +62,7 @@ moonpi provides four modes (Auto Mode has two phases):
 | **Auto Mode** (Act phase) | `read`, `grep`, `find`, `ls`, `bash`, `edit`, `write`, `todo`, `question` (+ `end_phase` in sprint loop) | After planning, the model executes the TODO list with full planning context intact. |
 | **Fast Mode** | `read`, `grep`, `find`, `ls`, `bash`, `edit`, `write` (+ `end_phase` in sprint loop) | Direct execution mode. No planning requirement, no TODO list, no QnA. Useful for quick edits and simple tasks. |
 
-Modes can be cycled using:
-
-- `Tab`
-- `Shift + Tab`
+Modes can be cycled using `Tab`
 
 Each mode has a different textbox color in the UI, making the current workflow state immediately visible.
 
@@ -101,10 +103,11 @@ If the project contains:
 
 - `README.md`
 - `SPECS.md`
+- `SPRINT.md`
 
 moonpi recursively discovers and injects them into context. At startup, a notification shows which files were found and injected, so you always know what context the model has access to.
 
-This behavior can be disabled in `/moonpi:settings`.
+This behavior can be disabled or configured in `/moonpi:settings`.
 
 The system prompt also instructs the model to keep these files up to date, making `README.md` and `SPECS.md` living project documents instead of abandoned archaeology.
 
@@ -127,31 +130,7 @@ If the model tries to write to a file without reading it first, the write tool r
 
 This prevents careless overwrites and forces the agent to inspect the current state of a file before modifying it.
 
-## Custom Providers
-
-moonpi includes the support from some custom providers.
-
-
-### Synthetic Provider
-
-Moonpi registers Synthetic as the `synthetic` provider using the OpenAI-compatible endpoint.
-
-Configure credentials with either:
-
-```bash
-export SYNTHETIC_API_KEY=...
-```
-
-or run:
-
-```text
-/login
-```
-
-Use `/model` to select a `synthetic` model. Use `/synthetic:quotas` to show the current Synthetic subscription and usage quotas.
-
-
-## Custom Commands
+## Moonpi loop
 
 moonpi includes sprint-oriented commands for larger projects.
 
@@ -221,6 +200,30 @@ Contains the executable task list:
 * verification checklist
 
 The agent updates `TASKS.md` as work progresses.
+
+## Custom Providers
+
+moonpi includes the support from some custom providers.
+
+
+### Synthetic Provider
+
+Moonpi registers Synthetic as the `synthetic` provider using the OpenAI-compatible endpoint.
+
+Configure credentials with either:
+
+```bash
+export SYNTHETIC_API_KEY=...
+```
+
+or run:
+
+```text
+/login
+```
+
+Use `/model` to select a `synthetic` model. Use `/synthetic:quotas` to show the current Synthetic subscription and usage quotas.
+
 
 ## Why moonpi?
 
