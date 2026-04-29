@@ -102,7 +102,7 @@ If the project contains:
 - `README.md`
 - `SPECS.md`
 
-moonpi can recursively discover and inject them into context.
+moonpi recursively discovers and injects them into context. At startup, a notification shows which files were found and injected, so you always know what context the model has access to.
 
 This behavior can be disabled in `/moonpi:settings`.
 

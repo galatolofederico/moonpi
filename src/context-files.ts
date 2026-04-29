@@ -54,7 +54,25 @@ function loadContextFiles(cwd: string, controller: MoonpiController): LoadedCont
   return loaded;
 }
 
+function findContextFilePaths(cwd: string, controller: MoonpiController): string[] {
+  const config = controller.config.contextFiles;
+  if (!config.enabled || !existsSync(cwd)) return [];
+
+  const paths: string[] = [];
+  findContextFiles(cwd, cwd, new Set(config.fileNames), new Set(config.ignoreDirs), paths);
+  paths.sort((left, right) => left.localeCompare(right));
+
+  return paths.map((fullPath) => relative(cwd, fullPath));
+}
+
 export function installContextFiles(pi: ExtensionAPI, controller: MoonpiController): void {
+  pi.on("session_start", async (_event, ctx) => {
+    const paths = findContextFilePaths(ctx.cwd, controller);
+    if (paths.length === 0) return;
+    const fileList = paths.map((p) => `  ${p}`).join("\n");
+    ctx.ui.notify(`moonpi context files injected:\n${fileList}`, "info");
+  });
+
   pi.on("before_agent_start", async (event) => {
     const files = loadContextFiles(event.systemPromptOptions.cwd, controller);
     if (files.length === 0) return undefined;
