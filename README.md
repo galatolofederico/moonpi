@@ -132,7 +132,7 @@ This prevents careless overwrites and forces the agent to inspect the current st
 
 ## Moonpi loop
 
-moonpi includes sprint-oriented commands for larger projects.
+moonpi includes sprint-oriented loop for larger projects.
 
 ### `/sprint:init`
 
@@ -174,32 +174,17 @@ The model signals the end of a phase by calling a special `end_phase` tool.
 
 This keeps long-running projects simple, resumable, and grounded in actual files.
 
-## Sprint Files
+### Does it work?
 
-A moonpi sprint has two main files.
+Watch a drastically sped-up video of `Qwen/Qwen3.6-27B` working unattended for over an hour on this sprint prompt:
 
-### `SPRINT.md`
+```text
+create WebOS a fully functional web-based operating system with apps, games and everything
+```
 
-Contains the full sprint specification:
+<video src="assets/moonpi-demo.mp4" autoplay loop muted playsinline width="100%"></video>
 
-* project goal
-* assumptions
-* implementation strategy
-* phases
-* acceptance criteria
-* verification steps
-
-### `TASKS.md`
-
-Contains the executable task list:
-
-* phase breakdown
-* individual tasks
-* task status
-* completion tracking
-* verification checklist
-
-The agent updates `TASKS.md` as work progresses.
+And judge the result yourself [here](https://qwen36-27b-moonpi-webos.netlify.app/).
 
 ## Custom Providers
 
@@ -250,3 +235,7 @@ And when it is not enough, it is still better than burning tokens on fake organi
 
 
 > **Fun Fact:** I used `moonpi` to build `moonpi`, making it a bootstrapped coding agent.
+
+## License
+
+MIT
