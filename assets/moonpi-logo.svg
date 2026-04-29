@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="260" viewBox="0 0 780 260" role="img" aria-labelledby="title desc">
+  <title id="title">MoonPi ASCII banner</title>
+  <desc id="desc">A monospaced SVG rendering of the MoonPi orbit-note crescent ASCII logo, using a gold terminal-style palette.</desc>
+  <defs>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="780" height="260" rx="22" fill="#101014"/>
+  <rect x="16" y="16" width="748" height="228" rx="16" fill="#15151b" stroke="#2a2a33" stroke-width="1.5" filter="url(#softShadow)"/>
+
+  <text x="42" y="58"
+        xml:space="preserve"
+        font-family="SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
+        font-size="22"
+        font-weight="500"
+        letter-spacing="0"
+        dominant-baseline="text-before-edge">
+    <tspan x="42" y="46" fill="#d7af5f">       _.._</tspan><tspan fill="#444444">                    .-.</tspan>
+    <tspan x="42" y="76" fill="#ffd787">     .' .-'`</tspan><tspan fill="#444444">              .-'   '-.</tspan>
+    <tspan x="42" y="106" fill="#ffffaf">    /  /</tspan><tspan fill="#15151b">        </tspan><tspan fill="#ffd700" font-weight="800">π</tspan><tspan fill="#15151b">       </tspan><tspan fill="#ffffaf" font-weight="800">moonpi</tspan><tspan fill="#444444">   )</tspan>
+    <tspan x="42" y="136" fill="#ffffd7">    |  |</tspan><tspan fill="#444444">                '-.   .-'</tspan>
+    <tspan x="42" y="166" fill="#ffffaf">    \  '.___.;</tspan><tspan fill="#444444">            '-'</tspan><tspan fill="#808080">   coding agent</tspan>
+    <tspan x="42" y="196" fill="#ffd787">     '._  _.'</tspan>
+    <tspan x="42" y="226" fill="#d7af5f">        ``</tspan>
+  </text>
+</svg>
