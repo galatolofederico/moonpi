@@ -326,7 +326,7 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
             const answers: string[] = [];
             const customs: string[] = [];
             for (const idx of [...selected].sort()) {
-              const opt = allOptions[idx];
+              const opt = allOptions[idx]!;
               if (idx === allOptions.length - 1) {
                 const customVal = customTexts.get(idx);
                 if (customVal) {
