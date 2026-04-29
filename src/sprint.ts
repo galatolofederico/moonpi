@@ -154,7 +154,7 @@ TASKS.md format requirements:
 - End each phase with a **Verification:** section listing how to confirm the phase is done
 
 Example:
-```
+\`\`\`
 ## Phase 1: Project Scaffolding
 
 - [ ] Initialize project structure
@@ -163,7 +163,7 @@ Example:
 
 **Verification:**
 - npm run dev loads without errors
-```
+\`\`\`
 
 Nothing else. Do not start implementing anything.`,
       );
