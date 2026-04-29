@@ -18,7 +18,7 @@ export const DEFAULT_CONFIG: MoonpiConfig = {
   },
   keybindings: {
     cycleNext: "tab",
-    cyclePrevious: "shift+tab",
+    cyclePrevious: "",
   },
 };
 
