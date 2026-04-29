@@ -244,3 +244,6 @@ It gives the coding agent a simple structure:
 That is usually enough.
 
 And when it is not enough, it is still better than burning tokens on fake organizational charts for imaginary agents.
+
+
+> **Fun Fact:** I used `moonpi` to build `moonpi`, making it a bootstrapped coding agent.
