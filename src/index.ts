@@ -92,6 +92,16 @@ ${controller.buildModePrompt()}`,
       return;
     }
 
+    // Auto:act completed → reset back to auto:plan (fresh state, just like startup)
+    if (controller.state.mode === "auto" && controller.state.autoPhase === "act") {
+      controller.state.autoPhase = "plan";
+      controller.state.todos = [];
+      controller.state.nextTodoId = 1;
+      controller.applyMode(ctx);
+      controller.persist();
+      return;
+    }
+
     if (controller.state.mode !== "auto" || controller.state.autoPhase !== "plan") return;
     if (controller.state.endConversationRequested) {
       controller.state.endConversationRequested = false;
