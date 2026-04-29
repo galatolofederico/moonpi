@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { Type, type Static } from "typebox";
 import type { MoonpiController } from "./modes.js";
 
@@ -50,83 +50,6 @@ function listSprintNumbers(cwd: string): number[] {
 function nextSprintNumber(cwd: string): number {
   const numbers = listSprintNumbers(cwd);
   return numbers.length === 0 ? 1 : Math.max(...numbers) + 1;
-}
-
-function writeSprintFiles(
-  cwd: string,
-  project: string,
-  outcome: string,
-  constraints: string,
-  verification: string,
-): number {
-  const sprintNumber = nextSprintNumber(cwd);
-  const dir = sprintDir(cwd, sprintNumber);
-  mkdirSync(dir, { recursive: true });
-
-  const sprint = `# Sprint ${sprintNumber}: ${project}
-
-## Goal
-
-${outcome}
-
-## Constraints, Risks, and Dependencies
-
-${constraints || "No additional constraints provided."}
-
-## Definition of Done
-
-- The implementation satisfies the goal above.
-- Every phase in TASKS.md is complete.
-- Verification tasks listed in TASKS.md have been run or explicitly documented with a reason.
-- README.md and SPECS.md are updated when behavior, setup, commands, or architecture changed.
-
-## Required Verification
-
-${verification || "Run the most relevant package checks and focused tests for the changed area."}
-`;
-
-  const tasks = `# Tasks for Sprint ${sprintNumber}
-
-Project: ${project}
-
-## Phase 1: Discovery and scope
-<!-- moonpi-phase:1 -->
-- [ ] P1.T1 Identify affected packages, files, commands, and user-visible workflows.
-- [ ] P1.T2 Read relevant README.md, SPECS.md, and local project instructions.
-- [ ] P1.T3 Record implementation risks and unresolved questions.
-- [ ] P1.V1 Verification: confirm the target files and commands needed for later phases are known.
-
-## Phase 2: Design and plan
-<!-- moonpi-phase:2 -->
-- [ ] P2.T1 Convert the sprint goal into concrete implementation steps.
-- [ ] P2.T2 Define acceptance criteria for each changed workflow.
-- [ ] P2.T3 Identify the focused tests or checks that prove the phase is complete.
-- [ ] P2.V1 Verification: the plan can be executed without needing new high-level decisions.
-
-## Phase 3: Implementation
-<!-- moonpi-phase:3 -->
-- [ ] P3.T1 Implement the planned changes in the smallest coherent slices.
-- [ ] P3.T2 Update TODO status as each material task changes.
-- [ ] P3.T3 Keep README.md and SPECS.md current if behavior or setup changes.
-- [ ] P3.V1 Verification: changed code is internally consistent and ready for focused validation.
-
-## Phase 4: Validation
-<!-- moonpi-phase:4 -->
-- [ ] P4.T1 Run the focused checks or tests identified earlier.
-- [ ] P4.T2 Fix every failure, warning, or info item that applies to the sprint.
-- [ ] P4.T3 Document any verification that could not be run and why.
-- [ ] P4.V1 Verification: the sprint can be reviewed with clear evidence.
-
-## Phase 5: Final review
-<!-- moonpi-phase:5 -->
-- [ ] P5.T1 Review changed files for scope, regressions, and missing documentation.
-- [ ] P5.T2 Summarize completed work and remaining risk.
-- [ ] P5.V1 Verification: TASKS.md shows every phase complete.
-`;
-
-  writeFileSync(sprintPath(cwd, sprintNumber), sprint, "utf-8");
-  writeFileSync(tasksPath(cwd, sprintNumber), tasks, "utf-8");
-  return sprintNumber;
 }
 
 function readTasks(cwd: string, sprintNumber: number): string {
@@ -193,11 +116,6 @@ function markPhaseComplete(cwd: string, sprintNumber: number, phaseId: string, s
   return phase;
 }
 
-async function askRequired(ctx: ExtensionCommandContext, title: string, prefill: string): Promise<string | undefined> {
-  const answer = await ctx.ui.editor(title, prefill);
-  return answer?.trim();
-}
-
 function continueAfterCompaction(pi: ExtensionAPI, ctx: ExtensionContext, prompt: string): void {
   ctx.compact({
     customInstructions: "Moonpi sprint loop completed one phase. Preserve the sprint goal, completed phase summary, and next phase instructions.",
@@ -207,40 +125,44 @@ function continueAfterCompaction(pi: ExtensionAPI, ctx: ExtensionContext, prompt
 }
 
 export function installSprintWorkflow(pi: ExtensionAPI, controller: MoonpiController): void {
-  pi.registerCommand("sprint:create", {
-    description: "Create a moonpi sprint under ./sprints/<number>",
+  pi.registerCommand("sprint:init", {
+    description: "Create a moonpi sprint: ask for the objective, then delegate SPRINT.md and TASKS.md creation to the agent",
     handler: async (_args, ctx) => {
-      const project = await askRequired(ctx, "Sprint description", "");
-      if (!project) return;
+      const objective = await ctx.ui.editor("Sprint objective", "");
+      if (!objective?.trim()) return;
 
-      const outcome = await askRequired(ctx, "Sprint outcome", project);
-      if (!outcome) return;
-      const constraints = await askRequired(ctx, "Constraints, risks, dependencies", "");
-      if (constraints === undefined) return;
-      const verification = await askRequired(ctx, "Required verification", "");
-      if (verification === undefined) return;
+      const sprintNumber = nextSprintNumber(ctx.cwd);
+      const dir = sprintDir(ctx.cwd, sprintNumber);
+      mkdirSync(dir, { recursive: true });
 
-      const sprintNumber = writeSprintFiles(ctx.cwd, project, outcome, constraints, verification);
-      ctx.ui.notify(`Created sprint ${sprintNumber} in ./sprints/${sprintNumber}`, "info");
+      controller.state.sprintLoop = { sprintNumber };
+      controller.applyMode(ctx);
+      controller.persist();
+
+      pi.sendUserMessage(
+        `Create the sprint files for Sprint ${sprintNumber} in ./sprints/${sprintNumber}/.
+
+Sprint objective: ${objective.trim()}
+
+Do exactly two things:
+1. Write SPRINT.md at ${sprintPath(ctx.cwd, sprintNumber)} — describe the sprint goal, constraints, and definition of done based on the objective.
+2. Write TASKS.md at ${tasksPath(ctx.cwd, sprintNumber)} — break the objective into concrete phases with tasks and verification items.
+
+Nothing else. Do not start implementing anything.`,
+      );
     },
   });
 
   pi.registerCommand("sprint:loop", {
-    description: "Execute the next incomplete phase in ./sprints/<number>/TASKS.md",
+    description: "Execute the next incomplete phase in the latest sprint, compacting after each phase",
     handler: async (_args, ctx) => {
       const sprints = listSprintNumbers(ctx.cwd);
       if (sprints.length === 0) {
-        ctx.ui.notify("No sprints found. Use /sprint:create to create one.", "error");
+        ctx.ui.notify("No sprints found. Use /sprint:init to create one.", "error");
         return;
       }
 
-      const latestSprint = sprints[sprints.length - 1]!;
-      const options = sprints.map((n) => `Sprint ${n}`).reverse(); // latest first
-      const selected = await ctx.ui.select("Select a sprint to loop", options);
-      if (!selected) return;
-
-      const match = /^Sprint (\d+)$/.exec(selected);
-      const sprintNumber = match ? Number.parseInt(match[1]!, 10) : latestSprint;
+      const sprintNumber = sprints[sprints.length - 1]!;
 
       let phase: Phase | undefined;
       try {

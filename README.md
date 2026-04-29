@@ -155,13 +155,13 @@ Use `/model` to select a `synthetic` model. Use `/synthetic:quotas` to show the 
 
 moonpi includes sprint-oriented commands for larger projects.
 
-### `/sprint:create`
+### `/sprint:init`
 
-Creates a structured sprint for a larger project.
+Creates a new sprint for a larger project.
 
-This command **must ask questions** before producing the sprint.
+This command asks **one question**: the sprint objective.
 
-After gathering the required information, it creates:
+It then delegates SPRINT.md and TASKS.md creation to the agent, which writes:
 
 ```txt
 ./sprints/<sprint_number>/SPRINT.md
@@ -170,13 +170,13 @@ After gathering the required information, it creates:
 
 The sprint is divided into phases.
 
-Each phase includes tests or verification steps that define when the phase is complete.
+Each phase includes tasks and verification steps that define when the phase is complete.
 
 The goal is to turn a vague big project into a concrete, phased execution plan.
 
 ### `/sprint:loop`
 
-Runs a sprint phase-by-phase.
+Runs the latest sprint phase-by-phase. Automatically picks the most recent sprint.
 
 The loop works like this:
 
