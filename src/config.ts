@@ -8,7 +8,7 @@ export const DEFAULT_CONFIG: MoonpiConfig = {
   preserveExternalTools: false,
   contextFiles: {
     enabled: true,
-    fileNames: ["README.md", "SPECS.md"],
+    fileNames: ["README.md", "SPECS.md", "SPRINT.md"],
     maxTotalBytes: 120_000,
     ignoreDirs: [".git", ".pi", "node_modules", "dist", "build", "coverage", ".next", ".turbo"],
   },
