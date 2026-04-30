@@ -24,6 +24,10 @@ If these **resonate** with you, you might **find** this set of extensions **usef
   Plan mode becomes pointless when the model outputs a “plan” and then loses all the context that produced it.  
   Planning only works when the planning conversation remains part of the execution context.
 
+- **Context is king.**
+  Why make the model guess which files matter for a task, wasting tokens and time wandering through the project, when you can inject the relevant files directly into the context?
+  Context matters more than models or harnesses, control the context and you control the result.
+
 - **Rejecting reads and writes outside the working directory is good steering.**  
   Yes, we all know the model can write and execute code, and yes, sandboxing is hard.  
   But telling the model “hey, you cannot read that” when it reaches outside the project helps steer behavior.  
@@ -59,7 +63,7 @@ moonpi adds a practical workflow layer on top of `pi`, focused on:
 - persistent planning context
 - TODO-driven execution
 - safer file access behavior
-- automatic project documentation context
+- pickable project documentation context
 - sprint-based long-running workflows
 - phase-by-phase execution loops
 
@@ -101,6 +105,23 @@ It works in two phases:
 
 This avoids the “plan then forget everything” problem.
 
+## Project Context Picker
+
+moonpi injects only the files selected with `/pick` into the model context.
+
+`/pick` opens a file-tree picker for the current working directory:
+
+- `README.md`, `SPECS.md`, and `SPRINT.md` context files are selected by default
+- use `↑` / `↓` to move
+- use `←` / `→` to close and open folders
+- use `Space` to select or deselect files and folders
+- use `D` to deselect everything
+- use `Enter` to confirm and close the picker
+
+At startup, a notification shows which files are currently selected for injection. Configure default filenames, ignored directories, byte limits, or disable injection in `/moonpi:settings`.
+
+The system prompt also instructs the model to keep selected project documents up to date, making `README.md` and `SPECS.md` living project documents instead of abandoned archaeology.
+
 ## TODO List Tool
 
 moonpi includes a TODO list tool that can be updated at any moment.
@@ -108,23 +129,6 @@ moonpi includes a TODO list tool that can be updated at any moment.
 Whenever an item is modified, the current full state of the TODO list is returned to the model.
 
 This keeps the agent grounded in the actual progress of the task instead of relying on vibes, memory, or whatever it hallucinated three messages ago.
-
-## Project Context Injection
-
-moonpi automatically injects project documentation into the model context.
-
-If the project contains:
-
-- `README.md`
-- `SPECS.md`
-- `SPRINT.md`
-
-moonpi recursively discovers and injects them into context. At startup, a notification shows which files were found and injected, so you always know what context the model has access to.
-
-This behavior can be disabled or configured in `/moonpi:settings`.
-
-The system prompt also instructs the model to keep these files up to date, making `README.md` and `SPECS.md` living project documents instead of abandoned archaeology.
-
 
 ## Filesystem Guardrails
 
@@ -237,6 +241,7 @@ It gives the coding agent a simple structure:
 * plan when needed
 * act when needed
 * keep the plan in context
+* inject the right project files up front
 * track work explicitly
 * stay inside the project
 * read before writing
