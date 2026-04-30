@@ -16,7 +16,7 @@ function textOf(result) {
 test("registers the expected commands, tools, UI, status, and default active tool set", async () => {
   const harness = await createMoonpiHarness({ config: defaultConfig });
   try {
-    for (const command of ["moonpi:mode", "moonpi:settings", "pick", "sprint:init", "sprint:loop"]) {
+    for (const command of ["moonpi:mode", "moonpi:settings", "pick", "context", "sprint:init", "sprint:loop"]) {
       assert.ok(harness.commands.has(command), `${command} command should be registered`);
     }
     assert.deepEqual([...harness.tools.keys()].sort(), ["end_conversation", "end_phase", "question", "todo"].sort());
@@ -234,6 +234,55 @@ test("/pick lazily loads folders as they are opened", async () => {
     assert.deepEqual(harness.entries.at(-1).data.selectedContextFilePaths, ["docs/nested.md"]);
   } finally {
     await harness.cleanup();
+  }
+});
+
+test("/context shows selected files and their source", async () => {
+  // Auto-discovered files
+  const autoHarness = await createMoonpiHarness({
+    config: {
+      contextFiles: { enabled: true, fileNames: ["README.md"], maxTotalBytes: 10_000, ignoreDirs: [] },
+      guards: { cwdOnly: false, readBeforeWrite: false },
+    },
+  });
+  try {
+    await writeFile(join(autoHarness.cwd, "README.md"), "readme");
+    await autoHarness.runCommand("context", "");
+    assert.match(autoHarness.notifications.at(-1).message, /1 file\(s\) auto-discovered/);
+    assert.match(autoHarness.notifications.at(-1).message, /README\.md/);
+  } finally {
+    await autoHarness.cleanup();
+  }
+
+  // Manually selected files
+  const pickHarness = await createMoonpiHarness({
+    config: {
+      contextFiles: { enabled: true, fileNames: ["README.md"], maxTotalBytes: 10_000, ignoreDirs: [] },
+      guards: { cwdOnly: false, readBeforeWrite: false },
+    },
+    runtimeOptions: { customResult: { confirmed: true, selectedPaths: ["README.md"] } },
+  });
+  try {
+    await writeFile(join(pickHarness.cwd, "README.md"), "readme");
+    await pickHarness.runCommand("pick", "");
+    await pickHarness.runCommand("context", "");
+    assert.match(pickHarness.notifications.at(-1).message, /1 file\(s\) manually selected with \/pick/);
+  } finally {
+    await pickHarness.cleanup();
+  }
+
+  // No files selected
+  const emptyHarness = await createMoonpiHarness({
+    config: {
+      contextFiles: { enabled: true, fileNames: ["UNLIKELY.md"], maxTotalBytes: 10_000, ignoreDirs: [] },
+      guards: { cwdOnly: false, readBeforeWrite: false },
+    },
+  });
+  try {
+    await emptyHarness.runCommand("context", "");
+    assert.match(emptyHarness.notifications.at(-1).message, /No default context files found/);
+  } finally {
+    await emptyHarness.cleanup();
   }
 });
 

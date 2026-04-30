@@ -462,6 +462,28 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
     },
   });
 
+  pi.registerCommand("context", {
+    description: "Show files selected for prompt injection",
+    handler: async (_args, ctx) => {
+      if (!controller.config.contextFiles.enabled) {
+        ctx.ui.notify("moonpi context file injection is disabled in /moonpi:settings.", "warning");
+        return;
+      }
+
+      const paths = getEffectiveSelectedContextFilePaths(ctx.cwd, controller);
+      const isManual = controller.state.selectedContextFilePaths !== undefined;
+
+      if (paths.length === 0) {
+        ctx.ui.notify(isManual ? "No files selected for prompt injection. Use /pick to select files." : "No default context files found. Use /pick to select files.", "info");
+        return;
+      }
+
+      const fileList = paths.map((p) => `  ${p}`).join("\n");
+      const source = isManual ? "manually selected with /pick" : "auto-discovered (use /pick to change)";
+      ctx.ui.notify(`${paths.length} file(s) ${source}:\n${fileList}`, "info");
+    },
+  });
+
   pi.on("session_start", async (_event, ctx) => {
     controller.restoreFromSession(ctx);
     const discovery = controller.state.selectedContextFilePaths === undefined ? findDefaultContextFilePaths(ctx.cwd, controller) : undefined;
