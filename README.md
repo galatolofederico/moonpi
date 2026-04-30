@@ -324,7 +324,9 @@ or run:
 /login
 ```
 
-Use `/model` to select a `synthetic` model. Use `/synthetic:quotas` to show the current Synthetic subscription and usage quotas.
+Use `/model` to select a `synthetic` model. Use `/synthetic:quotas` to show your weekly token and rolling 5h usage quotas:
+
+![Synthetic quotas output](assets/screenshots/moonpi-syn.png)
 
 
 ## Why moonpi?
