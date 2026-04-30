@@ -24,6 +24,8 @@ export interface MoonpiSnapshot {
   nextTodoId: number;
   readFiles: string[];
   endConversationRequested: boolean;
+  /** Relative file paths selected by /pick for project context injection. Undefined means use default context file matches. */
+  selectedContextFilePaths?: string[];
   sprintLoop?: SprintLoopState;
 }
 

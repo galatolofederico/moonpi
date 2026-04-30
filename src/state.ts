@@ -14,6 +14,7 @@ export class MoonpiState {
   nextTodoId = 1;
   readFiles = new Set<string>();
   endConversationRequested = false;
+  selectedContextFilePaths: string[] | undefined;
   sprintLoop: SprintLoopState | undefined;
 
   restore(snapshot: MoonpiSnapshot | undefined): void {
@@ -24,6 +25,9 @@ export class MoonpiState {
     this.nextTodoId = snapshot.nextTodoId;
     this.readFiles = new Set(snapshot.readFiles);
     this.endConversationRequested = snapshot.endConversationRequested;
+    this.selectedContextFilePaths = Array.isArray(snapshot.selectedContextFilePaths)
+      ? [...snapshot.selectedContextFilePaths]
+      : undefined;
     this.sprintLoop = snapshot.sprintLoop ? { ...snapshot.sprintLoop } : undefined;
   }
 
@@ -36,6 +40,9 @@ export class MoonpiState {
       readFiles: [...this.readFiles],
       endConversationRequested: this.endConversationRequested,
     };
+    if (this.selectedContextFilePaths !== undefined) {
+      snapshot.selectedContextFilePaths = [...this.selectedContextFilePaths];
+    }
     if (this.sprintLoop) snapshot.sprintLoop = { ...this.sprintLoop };
     return snapshot;
   }
