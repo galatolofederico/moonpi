@@ -83,7 +83,7 @@ moonpi adds a practical workflow layer on top of `pi`, focused on:
 - persistent planning context
 - TODO-driven execution
 - safer file access behavior
-- pickable project documentation context
+- pickable project documentation context and `/context` inspection
 - sprint-based long-running workflows
 - phase-by-phase execution loops
 
@@ -129,18 +129,48 @@ This avoids the “plan then forget everything” problem.
 
 moonpi injects only the files selected with `/pick` into the model context.
 
-`/pick` opens a file-tree picker for the current working directory:
+### `/pick`
+
+Opens a file-tree picker for the current working directory:
 
 - `README.md`, `SPECS.md`, and `SPRINT.md` context files are selected by default
 - use `↑` / `↓` to move
 - use `←` / `→` to close and open folders
 - use `Space` to select or deselect files and folders
+  - selecting a folder recursively selects **all** descendant files that match the pickable extensions filter
+  - selecting a folder with all descendants already selected will deselect them all
 - use `D` to deselect everything
 - use `Enter` to confirm and close the picker
 
-At startup, a notification shows which files are currently selected for injection. Configure default filenames, ignored directories, byte limits, scan limits, or disable injection in `/moonpi:settings`.
+The picker only shows files with pickable extensions (code, text, config, and documentation files). Binary files, images, lock files, and other non-text files are hidden. The extension filter is configurable via `pickableExtensions` (see [Configuration](#configuration)).
 
-For large repositories, moonpi bounds startup context discovery and `/pick` loads directories lazily as you open them, so startup cannot walk an unlimited tree. Configure `.pi/moonpi.json` or `~/.pi/agent/moonpi.json`:
+### `/context`
+
+Shows which files are currently selected for prompt injection and whether they were auto-discovered at startup or manually selected via `/pick`.
+
+Example output:
+
+```
+3 file(s) auto-discovered (use /pick to change):
+  README.md
+  SPECS.md
+  SPRINT.md
+```
+
+```
+5 file(s) manually selected with /pick:
+  README.md
+  src/config.ts
+  src/context-files.ts
+  src/types.ts
+  src/modes.ts
+```
+
+At startup, a notification shows which files are currently selected for injection.
+
+### Configuration
+
+Configure `.pi/moonpi.json` (project) or `~/.pi/agent/moonpi.json` (global):
 
 ```json
 {
@@ -151,16 +181,38 @@ For large repositories, moonpi bounds startup context discovery and `/pick` load
     "maxDepth": 4,
     "maxScannedEntries": 10000,
     "maxDefaultFiles": 25,
-    "ignoreDirs": [".git", ".pi", "node_modules", "dist", "build", "coverage", ".next", ".turbo"]
+    "pickableExtensions": [
+      ".ts", ".js", ".py", ".rs", ".go", ".md", ".json", ".yaml",
+      ".toml", ".sql", ".html", ".css", "Dockerfile", "Makefile"
+    ],
+    "ignoreDirs": [
+      ".git", ".svn", ".hg",
+      "node_modules", ".next", ".turbo",
+      ".venv", "venv", "__pycache__",
+      "target", "dist", "build", "coverage",
+      ".env", ".gradle", ".idea", ".vscode"
+    ]
   }
 }
 ```
+
+| Field | Default | Description |
+| --- | --- | --- |
+| `enabled` | `true` | Enable or disable context file injection entirely |
+| `fileNames` | `["README.md", "SPECS.md", "SPRINT.md"]` | Filenames auto-discovered at startup (before any `/pick` selection) |
+| `maxTotalBytes` | `120000` | Maximum total bytes injected into the prompt. Files are truncated beyond this limit |
+| `maxDepth` | `4` | Maximum directory depth for **startup auto-discovery only**. The `/pick` picker has no depth limit |
+| `maxScannedEntries` | `10000` | Maximum filesystem entries inspected during any scan (startup or `/pick`). Prevents walking huge trees |
+| `maxDefaultFiles` | `25` | Maximum files selected by auto-discovery. Does not affect `/pick` selections |
+| `pickableExtensions` | *(80+ entries, see defaults)* | File extensions (`.ts`, `.py`) and exact filenames (`Dockerfile`, `Makefile`) shown in `/pick`. Non-matching files are hidden from the picker |
+| `ignoreDirs` | *(40+ entries, see defaults)* | Directory names skipped during both auto-discovery and `/pick`. Covers VCS, language-specific caches, build output, IDE folders, and more |
 
 Recommended tuning for huge monorepos:
 
 - lower `maxDepth` to `2` or `3` if READMEs are mostly near the root
 - lower `maxScannedEntries` to cap worst-case startup and per-picker-session scanning latency
 - add generated/vendor folders to `ignoreDirs`
+- narrow `pickableExtensions` to only the file types you care about
 - lower `maxDefaultFiles` if too many READMEs are injected by default
 - set `enabled: false` and use manual `@file` references if you do not want automatic context injection
 
