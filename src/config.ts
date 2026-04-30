@@ -3,6 +3,41 @@ import { join } from "node:path";
 import { getAgentDir } from "@mariozechner/pi-coding-agent";
 import type { MoonpiConfig, MoonpiMode } from "./types.js";
 
+export const DEFAULT_PICKABLE_EXTENSIONS = [
+	// JavaScript / TypeScript
+	".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts",
+	// Python
+	".py", ".pyw", ".pyi",
+	// Ruby
+	".rb", ".erb",
+	// Go
+	".go",
+	// Rust
+	".rs",
+	// C / C++
+	".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hh", ".hxx",
+	// Java / Kotlin / Scala / Clojure
+	".java", ".kt", ".kts", ".scala", ".clj", ".cljs",
+	// C#
+	".cs", ".csx",
+	// Swift / Objective-C
+	".swift", ".m", ".mm",
+	// Other languages
+	".zig", ".dart", ".lua", ".r", ".R", ".php", ".pl", ".pm", ".ex", ".exs", ".erl", ".hs", ".ml",
+	// Shell
+	".sh", ".bash", ".zsh", ".fish", ".ps1", ".bat", ".cmd",
+	// Web
+	".html", ".htm", ".css", ".scss", ".sass", ".less", ".vue", ".svelte", ".svg",
+	// Query / schema
+	".sql", ".graphql", ".gql", ".prisma", ".proto",
+	// Data / config
+	".json", ".jsonc", ".yaml", ".yml", ".toml", ".xml", ".ini", ".cfg", ".conf", ".csv",
+	// Docs
+	".md", ".mdx", ".txt", ".rst", ".adoc", ".tex",
+	// Common extensionless filenames
+	"Dockerfile", "Makefile", "Gemfile", "Rakefile", ".gitignore", ".gitattributes", ".editorconfig",
+];
+
 export const DEFAULT_CONFIG: MoonpiConfig = {
   defaultMode: "auto",
   preserveExternalTools: false,
@@ -13,6 +48,7 @@ export const DEFAULT_CONFIG: MoonpiConfig = {
     maxDepth: 4,
     maxScannedEntries: 10_000,
     maxDefaultFiles: 25,
+    pickableExtensions: DEFAULT_PICKABLE_EXTENSIONS,
     ignoreDirs: [".git", ".pi", "node_modules", "dist", "build", "coverage", ".next", ".turbo"],
   },
   guards: {
@@ -67,6 +103,7 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
     const context = raw.contextFiles;
     if (typeof context.enabled === "boolean") next.contextFiles.enabled = context.enabled;
     next.contextFiles.fileNames = readStringArray(context.fileNames, next.contextFiles.fileNames);
+    next.contextFiles.pickableExtensions = readStringArray(context.pickableExtensions, next.contextFiles.pickableExtensions);
     next.contextFiles.ignoreDirs = readStringArray(context.ignoreDirs, next.contextFiles.ignoreDirs);
     if (typeof context.maxTotalBytes === "number" && Number.isFinite(context.maxTotalBytes)) {
       next.contextFiles.maxTotalBytes = Math.max(0, Math.floor(context.maxTotalBytes));

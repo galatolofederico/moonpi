@@ -81,6 +81,13 @@ function shouldSkipDir(name: string, ignoredDirs: Set<string>): boolean {
   return ignoredDirs.has(name);
 }
 
+function isPickableFile(name: string, pickable: Set<string>): boolean {
+  if (pickable.has(name)) return true;
+  const dotIndex = name.lastIndexOf(".");
+  if (dotIndex >= 0) return pickable.has(name.slice(dotIndex));
+  return false;
+}
+
 function canScanMore(stats: ScanStats, maxScannedEntries: number): boolean {
   if (stats.scannedEntries < maxScannedEntries) return true;
   stats.truncatedByEntryLimit = true;
@@ -183,6 +190,7 @@ function loadPickerChildren(cwd: string, controller: MoonpiController, node: Pic
   }
 
   const ignoredDirs = new Set(config.ignoreDirs);
+  const pickableExtensions = new Set(config.pickableExtensions);
   for (const entry of safeReadDir(node.path)) {
     if (!canScanMore(stats, config.maxScannedEntries)) break;
     stats.scannedEntries += 1;
@@ -202,6 +210,7 @@ function loadPickerChildren(cwd: string, controller: MoonpiController, node: Pic
         parent: node,
       });
     } else if (entry.isFile()) {
+      if (!isPickableFile(entry.name, pickableExtensions)) continue;
       node.children.push({
         type: "file",
         name: entry.name,
@@ -322,9 +331,16 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
           scrollOffset = Math.min(Math.max(scrollOffset, 0), Math.max(0, rows.length - maxTreeRows));
         }
 
+        function loadPickerDescendants(dirNode: PickerNode, depth: number): void {
+          loadPickerChildren(ctx.cwd, controller, dirNode, depth, tree.stats);
+          for (const child of dirNode.children) {
+            if (child.type === "dir") loadPickerDescendants(child, depth + 1);
+          }
+        }
+
         function toggleNode(node: PickerNode, depth: number): void {
           if (node.type === "dir") {
-            loadPickerChildren(ctx.cwd, controller, node, depth, tree.stats);
+            loadPickerDescendants(node, depth);
             scanLimitMessage = formatScanLimitMessage(tree.stats);
           }
           const paths = collectFilePaths(node);

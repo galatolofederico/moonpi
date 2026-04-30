@@ -42,6 +42,8 @@ export interface MoonpiConfig {
     maxScannedEntries: number;
     /** Maximum default context files to auto-select when no /pick selection exists. */
     maxDefaultFiles: number;
+    /** File extensions (with dot, e.g. ".ts") and exact filenames (e.g. "Dockerfile") selectable in /pick. */
+    pickableExtensions: string[];
     ignoreDirs: string[];
   };
   guards: {
