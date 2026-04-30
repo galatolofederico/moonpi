@@ -51,9 +51,29 @@ npm install -g @mariozechner/pi-coding-agent
 Then, install the `moonpi` extension set directly via `pi`:
 
 ```bash
-pi install git:github.com/galatolofederico/moonpi@v0.1
+pi install git:github.com/galatolofederico/moonpi@v0.2
 ```
 
+
+## Screenshots
+
+<p align="center">
+  <img src="assets/screenshots/moonpi-startup.png" alt="moonpi startup with project context notification and mode selector" width="600" />
+  <br />
+  <em>moonpi startup</em>
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/moonpi-picker.png" alt="The /pick file-tree picker for selecting project context files" width="600" />
+  <br />
+  <em>the /pick file-tree picker</em>
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/moonpi-working.png" alt="moonpi working on its own codebase" width="600" />
+  <br />
+  <em>moonpi working on its own codebase</em>
+</p>
 
 ## Features
 
