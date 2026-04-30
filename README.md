@@ -138,7 +138,33 @@ moonpi injects only the files selected with `/pick` into the model context.
 - use `D` to deselect everything
 - use `Enter` to confirm and close the picker
 
-At startup, a notification shows which files are currently selected for injection. Configure default filenames, ignored directories, byte limits, or disable injection in `/moonpi:settings`.
+At startup, a notification shows which files are currently selected for injection. Configure default filenames, ignored directories, byte limits, scan limits, or disable injection in `/moonpi:settings`.
+
+For large repositories, moonpi bounds startup context discovery and `/pick` loads directories lazily as you open them, so startup cannot walk an unlimited tree. Configure `.pi/moonpi.json` or `~/.pi/agent/moonpi.json`:
+
+```json
+{
+  "contextFiles": {
+    "enabled": true,
+    "fileNames": ["README.md", "SPECS.md", "SPRINT.md"],
+    "maxTotalBytes": 120000,
+    "maxDepth": 4,
+    "maxScannedEntries": 10000,
+    "maxDefaultFiles": 25,
+    "ignoreDirs": [".git", ".pi", "node_modules", "dist", "build", "coverage", ".next", ".turbo"]
+  }
+}
+```
+
+Recommended tuning for huge monorepos:
+
+- lower `maxDepth` to `2` or `3` if READMEs are mostly near the root
+- lower `maxScannedEntries` to cap worst-case startup and per-picker-session scanning latency
+- add generated/vendor folders to `ignoreDirs`
+- lower `maxDefaultFiles` if too many READMEs are injected by default
+- set `enabled: false` and use manual `@file` references if you do not want automatic context injection
+
+If a scan hits a limit, moonpi shows a warning in startup notifications or `/pick`.
 
 The system prompt also instructs the model to keep selected project documents up to date, making `README.md` and `SPECS.md` living project documents instead of abandoned archaeology.
 

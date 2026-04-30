@@ -10,6 +10,9 @@ export const DEFAULT_CONFIG: MoonpiConfig = {
     enabled: true,
     fileNames: ["README.md", "SPECS.md", "SPRINT.md"],
     maxTotalBytes: 120_000,
+    maxDepth: 4,
+    maxScannedEntries: 10_000,
+    maxDefaultFiles: 25,
     ignoreDirs: [".git", ".pi", "node_modules", "dist", "build", "coverage", ".next", ".turbo"],
   },
   guards: {
@@ -67,6 +70,15 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
     next.contextFiles.ignoreDirs = readStringArray(context.ignoreDirs, next.contextFiles.ignoreDirs);
     if (typeof context.maxTotalBytes === "number" && Number.isFinite(context.maxTotalBytes)) {
       next.contextFiles.maxTotalBytes = Math.max(0, Math.floor(context.maxTotalBytes));
+    }
+    if (typeof context.maxDepth === "number" && Number.isFinite(context.maxDepth)) {
+      next.contextFiles.maxDepth = Math.max(0, Math.floor(context.maxDepth));
+    }
+    if (typeof context.maxScannedEntries === "number" && Number.isFinite(context.maxScannedEntries)) {
+      next.contextFiles.maxScannedEntries = Math.max(0, Math.floor(context.maxScannedEntries));
+    }
+    if (typeof context.maxDefaultFiles === "number" && Number.isFinite(context.maxDefaultFiles)) {
+      next.contextFiles.maxDefaultFiles = Math.max(0, Math.floor(context.maxDefaultFiles));
     }
   }
 

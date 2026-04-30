@@ -36,6 +36,12 @@ export interface MoonpiConfig {
     enabled: boolean;
     fileNames: string[];
     maxTotalBytes: number;
+    /** Maximum directory depth to scan from cwd for default context files and /pick. */
+    maxDepth: number;
+    /** Maximum filesystem entries to inspect before stopping discovery/tree building. */
+    maxScannedEntries: number;
+    /** Maximum default context files to auto-select when no /pick selection exists. */
+    maxDefaultFiles: number;
     ignoreDirs: string[];
   };
   guards: {

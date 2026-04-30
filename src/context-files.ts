@@ -17,6 +17,7 @@ interface PickerNode {
   relativePath: string;
   children: PickerNode[];
   expanded: boolean;
+  loaded: boolean;
   parent?: PickerNode;
 }
 
@@ -28,6 +29,32 @@ interface VisiblePickerNode {
 interface PickResult {
   confirmed: boolean;
   selectedPaths: string[];
+}
+
+interface ScanStats {
+  scannedEntries: number;
+  truncatedByEntryLimit: boolean;
+  truncatedByDepthLimit: boolean;
+  truncatedByDefaultFileLimit: boolean;
+}
+
+interface DefaultContextFileDiscovery {
+  paths: string[];
+  stats: ScanStats;
+}
+
+interface PickerTreeResult {
+  root: PickerNode;
+  stats: ScanStats;
+}
+
+function createScanStats(): ScanStats {
+  return {
+    scannedEntries: 0,
+    truncatedByEntryLimit: false,
+    truncatedByDepthLimit: false,
+    truncatedByDefaultFileLimit: false,
+  };
 }
 
 function isInsideRoot(root: string, filePath: string): boolean {
@@ -50,33 +77,71 @@ function safeReadDir(dir: string): Dirent<string>[] {
   }
 }
 
-function findContextFiles(dir: string, root: string, fileNames: Set<string>, ignoredDirs: Set<string>, results: string[]): void {
-  for (const entry of safeReadDir(dir)) {
-    const fullPath = join(dir, entry.name);
-    if (entry.isSymbolicLink()) continue;
-    if (entry.isDirectory()) {
-      if (!ignoredDirs.has(entry.name)) findContextFiles(fullPath, root, fileNames, ignoredDirs, results);
-      continue;
-    }
-    if (entry.isFile() && fileNames.has(entry.name)) results.push(fullPath);
-  }
+function shouldSkipDir(name: string, ignoredDirs: Set<string>): boolean {
+  return ignoredDirs.has(name);
 }
 
-function findDefaultContextFilePaths(cwd: string, controller: MoonpiController): string[] {
+function canScanMore(stats: ScanStats, maxScannedEntries: number): boolean {
+  if (stats.scannedEntries < maxScannedEntries) return true;
+  stats.truncatedByEntryLimit = true;
+  return false;
+}
+
+function findDefaultContextFilePaths(cwd: string, controller: MoonpiController): DefaultContextFileDiscovery {
   const config = controller.config.contextFiles;
-  if (!config.enabled || !existsSync(cwd)) return [];
+  const stats = createScanStats();
+  if (!config.enabled || !existsSync(cwd)) return { paths: [], stats };
 
-  const paths: string[] = [];
-  findContextFiles(cwd, cwd, new Set(config.fileNames), new Set(config.ignoreDirs), paths);
-  paths.sort((left, right) => left.localeCompare(right));
+  if (config.maxDefaultFiles <= 0) {
+    stats.truncatedByDefaultFileLimit = true;
+    return { paths: [], stats };
+  }
 
-  return paths.map((fullPath) => relative(cwd, fullPath));
+  const fileNames = new Set(config.fileNames);
+  const ignoredDirs = new Set(config.ignoreDirs);
+  const found: string[] = [];
+  const stack: Array<{ dir: string; depth: number }> = [{ dir: cwd, depth: 0 }];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) break;
+
+    const entries = safeReadDir(current.dir).sort((left, right) => left.name.localeCompare(right.name));
+    for (const entry of entries) {
+      if (!canScanMore(stats, config.maxScannedEntries)) break;
+      stats.scannedEntries += 1;
+      if (entry.isSymbolicLink()) continue;
+
+      const fullPath = join(current.dir, entry.name);
+      if (entry.isDirectory()) {
+        if (shouldSkipDir(entry.name, ignoredDirs)) continue;
+        if (current.depth >= config.maxDepth) {
+          stats.truncatedByDepthLimit = true;
+          continue;
+        }
+        stack.push({ dir: fullPath, depth: current.depth + 1 });
+        continue;
+      }
+
+      if (entry.isFile() && fileNames.has(entry.name)) {
+        found.push(relative(cwd, fullPath));
+        if (found.length >= config.maxDefaultFiles) {
+          stats.truncatedByDefaultFileLimit = true;
+          stack.length = 0;
+          break;
+        }
+      }
+    }
+  }
+
+  found.sort((left, right) => left.localeCompare(right));
+  return { paths: found, stats };
 }
 
 function getEffectiveSelectedContextFilePaths(cwd: string, controller: MoonpiController): string[] {
   if (!controller.config.contextFiles.enabled || !existsSync(cwd)) return [];
   const selected = controller.state.selectedContextFilePaths;
-  return selected === undefined ? findDefaultContextFilePaths(cwd, controller) : [...selected].sort((left, right) => left.localeCompare(right));
+  return selected === undefined ? findDefaultContextFilePaths(cwd, controller).paths : [...selected].sort((left, right) => left.localeCompare(right));
 }
 
 function loadContextFiles(cwd: string, controller: MoonpiController): LoadedContextFile[] {
@@ -107,44 +172,75 @@ function loadContextFiles(cwd: string, controller: MoonpiController): LoadedCont
   return loaded;
 }
 
-function buildPickerTree(cwd: string, controller: MoonpiController): PickerNode {
-  const ignoredDirs = new Set(controller.config.contextFiles.ignoreDirs);
+function loadPickerChildren(cwd: string, controller: MoonpiController, node: PickerNode, depth: number, stats: ScanStats): void {
+  if (node.type !== "dir" || node.loaded) return;
 
-  function buildDir(dir: string, name: string, parent?: PickerNode): PickerNode {
-    const node: PickerNode = {
-      type: "dir",
-      name,
-      path: dir,
-      relativePath: relative(cwd, dir),
-      children: [],
-      expanded: parent === undefined,
-      ...(parent ? { parent } : {}),
-    };
-
-    for (const entry of safeReadDir(dir)) {
-      if (entry.isSymbolicLink()) continue;
-      if (entry.isDirectory()) {
-        if (ignoredDirs.has(entry.name)) continue;
-        node.children.push(buildDir(join(dir, entry.name), entry.name, node));
-      } else if (entry.isFile()) {
-        const filePath = join(dir, entry.name);
-        node.children.push({
-          type: "file",
-          name: entry.name,
-          path: filePath,
-          relativePath: relative(cwd, filePath),
-          children: [],
-          expanded: false,
-          parent: node,
-        });
-      }
-    }
-
-    node.children.sort(sortEntries);
-    return node;
+  const config = controller.config.contextFiles;
+  if (depth >= config.maxDepth) {
+    stats.truncatedByDepthLimit = true;
+    node.loaded = true;
+    return;
   }
 
-  return buildDir(cwd, ".");
+  const ignoredDirs = new Set(config.ignoreDirs);
+  for (const entry of safeReadDir(node.path)) {
+    if (!canScanMore(stats, config.maxScannedEntries)) break;
+    stats.scannedEntries += 1;
+    if (entry.isSymbolicLink()) continue;
+
+    const filePath = join(node.path, entry.name);
+    if (entry.isDirectory()) {
+      if (shouldSkipDir(entry.name, ignoredDirs)) continue;
+      node.children.push({
+        type: "dir",
+        name: entry.name,
+        path: filePath,
+        relativePath: relative(cwd, filePath),
+        children: [],
+        expanded: false,
+        loaded: false,
+        parent: node,
+      });
+    } else if (entry.isFile()) {
+      node.children.push({
+        type: "file",
+        name: entry.name,
+        path: filePath,
+        relativePath: relative(cwd, filePath),
+        children: [],
+        expanded: false,
+        loaded: true,
+        parent: node,
+      });
+    }
+  }
+
+  node.children.sort(sortEntries);
+  node.loaded = true;
+}
+
+function buildPickerTree(cwd: string, controller: MoonpiController): PickerTreeResult {
+  const stats = createScanStats();
+  const root: PickerNode = {
+    type: "dir",
+    name: ".",
+    path: cwd,
+    relativePath: "",
+    children: [],
+    expanded: true,
+    loaded: false,
+  };
+  loadPickerChildren(cwd, controller, root, 0, stats);
+  return { root, stats };
+}
+
+function formatScanLimitMessage(stats: ScanStats): string | undefined {
+  const limits: string[] = [];
+  if (stats.truncatedByEntryLimit) limits.push("entry limit");
+  if (stats.truncatedByDepthLimit) limits.push("depth limit");
+  if (stats.truncatedByDefaultFileLimit) limits.push("default-file limit");
+  if (limits.length === 0) return undefined;
+  return `scan truncated by ${limits.join(", ")} after ${stats.scannedEntries} entries`;
 }
 
 function collectVisibleNodes(root: PickerNode): VisiblePickerNode[] {
@@ -168,7 +264,13 @@ function collectFilePaths(node: PickerNode): string[] {
 
 function selectedState(node: PickerNode, selected: Set<string>): "none" | "partial" | "all" {
   const filePaths = collectFilePaths(node);
-  if (filePaths.length === 0) return "none";
+  if (filePaths.length === 0) {
+    if (node.type === "dir" && !node.loaded) {
+      const prefix = node.relativePath ? `${node.relativePath}/` : "";
+      return [...selected].some((path) => path.startsWith(prefix)) ? "partial" : "none";
+    }
+    return "none";
+  }
   const selectedCount = filePaths.filter((path) => selected.has(path)).length;
   if (selectedCount === 0) return "none";
   if (selectedCount === filePaths.length) return "all";
@@ -191,9 +293,11 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
         ctx.ui.notify("moonpi context file injection is disabled in /moonpi:settings.", "warning");
       }
 
-      const root = buildPickerTree(ctx.cwd, controller);
-      const allVisibleFilePaths = new Set(collectFilePaths(root));
-      const selected = new Set(getEffectiveSelectedContextFilePaths(ctx.cwd, controller).filter((path) => allVisibleFilePaths.has(path)));
+      const tree = buildPickerTree(ctx.cwd, controller);
+      const root = tree.root;
+      const selected = new Set(getEffectiveSelectedContextFilePaths(ctx.cwd, controller));
+      let scanLimitMessage = formatScanLimitMessage(tree.stats);
+      if (scanLimitMessage) ctx.ui.notify(`/pick ${scanLimitMessage}. Narrow contextFiles limits or add ignored directories if needed.`, "warning");
 
       const result = await ctx.ui.custom<PickResult>((tui, theme, _kb, done) => {
         let cursorIndex = 0;
@@ -218,7 +322,11 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
           scrollOffset = Math.min(Math.max(scrollOffset, 0), Math.max(0, rows.length - maxTreeRows));
         }
 
-        function toggleNode(node: PickerNode): void {
+        function toggleNode(node: PickerNode, depth: number): void {
+          if (node.type === "dir") {
+            loadPickerChildren(ctx.cwd, controller, node, depth, tree.stats);
+            scanLimitMessage = formatScanLimitMessage(tree.stats);
+          }
           const paths = collectFilePaths(node);
           if (paths.length === 0) return;
           const allSelected = paths.every((path) => selected.has(path));
@@ -245,7 +353,12 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
             return;
           }
           if (matchesKey(data, Key.right)) {
-            if (current?.type === "dir") current.expanded = true;
+            if (current?.type === "dir") {
+              const currentDepth = rows[cursorIndex]?.depth ?? 0;
+              loadPickerChildren(ctx.cwd, controller, current, currentDepth, tree.stats);
+              scanLimitMessage = formatScanLimitMessage(tree.stats);
+              current.expanded = true;
+            }
             ensureCursorVisible();
             invalidate();
             return;
@@ -262,7 +375,7 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
             return;
           }
           if (matchesKey(data, Key.space)) {
-            if (current) toggleNode(current);
+            if (current) toggleNode(current, rows[cursorIndex]?.depth ?? 0);
             invalidate();
             return;
           }
@@ -298,12 +411,13 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
           const rows = visibleRows();
           const visible = rows.slice(scrollOffset, scrollOffset + maxTreeRows);
           const selectedCount = selected.size;
-          const totalFiles = allVisibleFilePaths.size;
+          const totalFiles = collectFilePaths(root).length;
           const lines: string[] = [];
           const add = (line: string) => lines.push(truncateToWidth(line, width));
 
           add(theme.fg("accent", theme.bold("Pick moonpi context files")));
           add(theme.fg("dim", `${selectedCount}/${totalFiles} files selected for prompt injection`));
+          if (scanLimitMessage) add(theme.fg("warning", scanLimitMessage));
           add(theme.fg("dim", "↑/↓ move • ←/→ close/open • Space select • D deselect all • Enter confirm • Esc cancel"));
           lines.push("");
 
@@ -333,17 +447,24 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
 
       controller.state.selectedContextFilePaths = result.selectedPaths;
       controller.persist();
-      const summary = result.selectedPaths.length === 0 ? "No files selected for prompt injection." : `Selected ${result.selectedPaths.length} context file(s).`;
+      const limitSuffix = scanLimitMessage ? ` (${scanLimitMessage})` : "";
+      const summary = result.selectedPaths.length === 0 ? `No files selected for prompt injection.${limitSuffix}` : `Selected ${result.selectedPaths.length} context file(s).${limitSuffix}`;
       ctx.ui.notify(summary, "info");
     },
   });
 
   pi.on("session_start", async (_event, ctx) => {
     controller.restoreFromSession(ctx);
-    const paths = getEffectiveSelectedContextFilePaths(ctx.cwd, controller);
-    if (paths.length === 0) return;
+    const discovery = controller.state.selectedContextFilePaths === undefined ? findDefaultContextFilePaths(ctx.cwd, controller) : undefined;
+    const paths = discovery ? discovery.paths : getEffectiveSelectedContextFilePaths(ctx.cwd, controller);
+    const scanLimitMessage = discovery ? formatScanLimitMessage(discovery.stats) : undefined;
+    if (paths.length === 0) {
+      if (scanLimitMessage) ctx.ui.notify(`moonpi default context file ${scanLimitMessage}.`, "warning");
+      return;
+    }
     const fileList = paths.map((p) => `  ${p}`).join("\n");
-    ctx.ui.notify(`moonpi context files selected for injection (/pick to change):\n${fileList}`, "info");
+    const scanNotice = scanLimitMessage ? `\n\nNote: default context file ${scanLimitMessage}.` : "";
+    ctx.ui.notify(`moonpi context files selected for injection (/pick to change):\n${fileList}${scanNotice}`, "info");
   });
 
   pi.on("before_agent_start", async (event) => {

@@ -193,6 +193,87 @@ test("context files are discovered, injected, selectable with /pick, truncated, 
   }
 });
 
+test("/pick lazily loads folders as they are opened", async () => {
+  const harness = await createMoonpiHarness({
+    config: {
+      contextFiles: { enabled: true, fileNames: ["README.md"], maxTotalBytes: 10_000, maxDepth: 4, maxScannedEntries: 100, maxDefaultFiles: 10, ignoreDirs: [] },
+      guards: { cwdOnly: false, readBeforeWrite: false },
+    },
+    runtimeOptions: {
+      custom: async (factory) => {
+        let result;
+        const component = factory(
+          { requestRender: () => undefined },
+          { fg: (_name, value) => value, bold: (value) => value },
+          undefined,
+          (value) => {
+            result = value;
+          },
+        );
+
+        let rendered = component.render(120).join("\n");
+        assert.doesNotMatch(rendered, /nested\.md/, "nested files are not indexed before opening their folder");
+
+        component.handleInput("\x1b[B"); // docs/
+        component.handleInput("\x1b[C"); // open docs/ and load direct children
+        rendered = component.render(120).join("\n");
+        assert.match(rendered, /nested\.md/, "opening a folder loads and renders its direct children");
+
+        component.handleInput("\x1b[B"); // nested.md
+        component.handleInput(" ");
+        component.handleInput("\r");
+        return result;
+      },
+    },
+  });
+  try {
+    await mkdir(join(harness.cwd, "docs"));
+    await writeFile(join(harness.cwd, "docs", "nested.md"), "nested");
+
+    await harness.runCommand("pick", "");
+    assert.deepEqual(harness.entries.at(-1).data.selectedContextFilePaths, ["docs/nested.md"]);
+  } finally {
+    await harness.cleanup();
+  }
+});
+
+test("context file discovery is bounded by depth, scan, and default-file limits", async () => {
+  const harness = await createMoonpiHarness({
+    config: {
+      contextFiles: {
+        enabled: true,
+        fileNames: ["README.md"],
+        maxTotalBytes: 10_000,
+        maxDepth: 1,
+        maxScannedEntries: 100,
+        maxDefaultFiles: 1,
+        ignoreDirs: [],
+      },
+      guards: { cwdOnly: false, readBeforeWrite: false },
+    },
+    runtimeOptions: { customResult: { confirmed: true, selectedPaths: [] } },
+  });
+  try {
+    await writeFile(join(harness.cwd, "README.md"), "root");
+    await mkdir(join(harness.cwd, "one", "two"), { recursive: true });
+    await writeFile(join(harness.cwd, "one", "README.md"), "one");
+    await writeFile(join(harness.cwd, "one", "two", "README.md"), "too-deep");
+    for (let i = 0; i < 20; i += 1) {
+      await writeFile(join(harness.cwd, `file-${i}.txt`), "x");
+    }
+
+    await harness.emit("session_start");
+    assert.match(harness.notifications.map((n) => n.message).join("\n"), /scan truncated/);
+
+    const prompt = await harness.buildInjectedPrompt("BASE");
+    const injected = [...prompt.matchAll(/<context-file path=/g)];
+    assert.equal(injected.length, 1, "maxDefaultFiles caps automatic context injection");
+    assert.doesNotMatch(prompt, /too-deep/);
+  } finally {
+    await harness.cleanup();
+  }
+});
+
 test("sprint:init creates sprint directory, stores loop state, and sends planning instructions", async () => {
   const harness = await createMoonpiHarness({ config: defaultConfig, runtimeOptions: { editorResult: "Ship feature" } });
   try {
