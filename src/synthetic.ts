@@ -62,6 +62,10 @@ const ANSI_DIM = "\x1b[2m";
 const ANSI_BOLD = "\x1b[1m";
 const ANSI_RESET = "\x1b[0m";
 
+// Fixed regeneration cadences (from Synthetic docs)
+const WEEKLY_REGEN_INTERVAL_MS = 3 * 60 * 60 * 1000; // 2% every 3 hours
+const ROLLING_REGEN_INTERVAL_MS = 3 * 60 * 1000; // 5% every 3 minutes
+
 /** Parse a credit string that may contain commas or formatting into a number */
 function parseCredits(value: string): number {
 	const cleaned = value.replace(/[^0-9.eE+-]/g, "");
@@ -111,15 +115,19 @@ function formatSyntheticQuotas(quotas: QuotasResponse): string {
     const regenCredits = parseCredits(wt.nextRegenCredits);
     const regenTimeStr = formatResetTime(wt.nextRegenAt);
 
-    // Calculate time to fully regenerate: scale regen interval by (1 - ratio)
-    const regenDate = new Date(wt.nextRegenAt);
-    const regenIntervalMs = regenDate.getTime() - Date.now();
+    // Weekly regenerates 2% every 3 hours at a fixed cadence.
+    // First regen arrives at nextRegenAt, subsequent regens every 3h.
     let fullRegenStr = "N/A";
-    if (regenIntervalMs > 0 && regenCredits > 0) {
+    if (regenCredits > 0 && remaining < max) {
       const creditsNeeded = max - remaining;
       const intervalsNeeded = Math.ceil(creditsNeeded / regenCredits);
-      const fullRegenMs = regenIntervalMs * intervalsNeeded;
+      const regenDate = new Date(wt.nextRegenAt);
+      const firstIntervalMs = Math.max(0, regenDate.getTime() - Date.now());
+      // First interval is time-to-next-tick, rest use fixed 3h cadence
+      const fullRegenMs = firstIntervalMs + WEEKLY_REGEN_INTERVAL_MS * (intervalsNeeded - 1);
       fullRegenStr = formatDuration(fullRegenMs);
+    } else if (remaining >= max) {
+      fullRegenStr = "full";
     }
 
     lines.push(`${ANSI_BOLD}Weekly Tokens${ANSI_RESET}`);
@@ -140,15 +148,19 @@ function formatSyntheticQuotas(quotas: QuotasResponse): string {
     const state = rf.limited ? `${ANSI_DIM}limited${ANSI_RESET}` : `${ANSI_GREEN}available${ANSI_RESET}`;
     const tickTimeStr = formatResetTime(rf.nextTickAt);
 
-    // Rolling 5h regenerates 1 request per tick. Time to fully regenerate = (max - remaining) * tick interval.
-    const tickDate = new Date(rf.nextTickAt);
-    const tickIntervalMs = tickDate.getTime() - Date.now();
+    // Rolling 5h regenerates 5% of max every 3 minutes at a fixed cadence.
+    // First regen arrives at nextTickAt, subsequent regens every 3 min.
+    const regenPerTick = Math.max(1, Math.round(rf.max * 0.05));
     let fullRegenStr = "N/A";
-    if (tickIntervalMs > 0 && remainingInt < maxInt) {
+    if (remainingInt < maxInt) {
       const needed = maxInt - remainingInt;
-      const fullRegenMs = tickIntervalMs * needed;
+      const ticksNeeded = Math.ceil(needed / regenPerTick);
+      const tickDate = new Date(rf.nextTickAt);
+      const firstTickMs = Math.max(0, tickDate.getTime() - Date.now());
+      // First tick is time-to-next-tick, rest use fixed 3 min cadence
+      const fullRegenMs = firstTickMs + ROLLING_REGEN_INTERVAL_MS * (ticksNeeded - 1);
       fullRegenStr = formatDuration(fullRegenMs);
-    } else if (remainingInt >= maxInt) {
+    } else {
       fullRegenStr = "full";
     }
 
@@ -158,7 +170,7 @@ function formatSyntheticQuotas(quotas: QuotasResponse): string {
     );
     lines.push(`  ${renderBar(ratio, BAR_WIDTH, ANSI_GREEN)}`);
     lines.push(
-      `  Regen +1 ${tickTimeStr}  ${ANSI_DIM}Full: ${fullRegenStr}${ANSI_RESET}`,
+      `  Regen +${regenPerTick} ${tickTimeStr}  ${ANSI_DIM}Full: ${fullRegenStr}${ANSI_RESET}`,
     );
   }
 
