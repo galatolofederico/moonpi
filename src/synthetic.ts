@@ -55,72 +55,114 @@ function isTimeoutReason(reason: unknown): boolean {
   );
 }
 
+// ANSI color helpers
+const ANSI_BLUE = "\x1b[34m";
+const ANSI_GREEN = "\x1b[32m";
+const ANSI_DIM = "\x1b[2m";
+const ANSI_BOLD = "\x1b[1m";
+const ANSI_RESET = "\x1b[0m";
+
+/** Parse a credit string that may contain commas or formatting into a number */
+function parseCredits(value: string): number {
+	const cleaned = value.replace(/[^0-9.eE+-]/g, "");
+	const n = Number(cleaned);
+	return Number.isFinite(n) ? n : 0;
+}
+
+/** Format a duration in milliseconds as a human-readable string like "1d 3h 30m" */
+function formatDuration(ms: number): string {
+  if (ms <= 0) return "now";
+  const totalMinutes = Math.floor(ms / (1000 * 60));
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  return parts.length > 0 ? parts.join(" ") : "<1m";
+}
+
+/** Render a colored progress bar using ANSI block characters */
+function renderBar(ratio: number, width: number, color: string): string {
+  const filled = Math.round(ratio * width);
+  const empty = width - filled;
+  const bar = "█".repeat(Math.max(0, filled)) + "░".repeat(Math.max(0, empty));
+  return `${color}${bar}${ANSI_RESET}`;
+}
+
 function formatResetTime(resetAt: string): string {
   const date = new Date(resetAt);
   const diffMs = date.getTime() - Date.now();
   if (Number.isNaN(date.getTime())) return resetAt;
   if (diffMs <= 0) return "soon";
-
-  const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  if (diffHours < 24) return `in ${diffHours}h`;
-  if (diffDays < 7) return `in ${diffDays}d`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function formatPercent(value: number): string {
-  return `${value.toFixed(1)}%`;
-}
-
-function formatCount(requests: number, limit: number): string {
-  return `${requests}/${limit}`;
+  return `in ${formatDuration(diffMs)}`;
 }
 
 function formatSyntheticQuotas(quotas: QuotasResponse): string {
-  const lines = ["Synthetic quotas:"];
-
-  if (quotas.subscription) {
-    lines.push(
-      `Subscription: ${formatCount(quotas.subscription.requests, quotas.subscription.limit)} resets ${formatResetTime(
-        quotas.subscription.renewsAt,
-      )}`,
-    );
-  }
+  const lines: string[] = [];
+  const BAR_WIDTH = 24;
 
   if (quotas.weeklyTokenLimit) {
+    const wt = quotas.weeklyTokenLimit;
+    const remaining = parseCredits(wt.remainingCredits);
+    const max = parseCredits(wt.maxCredits);
+    const ratio = max > 0 ? remaining / max : 0;
+    const regenCredits = parseCredits(wt.nextRegenCredits);
+    const regenTimeStr = formatResetTime(wt.nextRegenAt);
+
+    // Calculate time to fully regenerate: scale regen interval by (1 - ratio)
+    const regenDate = new Date(wt.nextRegenAt);
+    const regenIntervalMs = regenDate.getTime() - Date.now();
+    let fullRegenStr = "N/A";
+    if (regenIntervalMs > 0 && regenCredits > 0) {
+      const creditsNeeded = max - remaining;
+      const intervalsNeeded = Math.ceil(creditsNeeded / regenCredits);
+      const fullRegenMs = regenIntervalMs * intervalsNeeded;
+      fullRegenStr = formatDuration(fullRegenMs);
+    }
+
+    lines.push(`${ANSI_BOLD}Weekly Tokens${ANSI_RESET}`);
     lines.push(
-      `Weekly tokens: ${quotas.weeklyTokenLimit.remainingCredits}/${quotas.weeklyTokenLimit.maxCredits} credits remaining (${formatPercent(
-        quotas.weeklyTokenLimit.percentRemaining,
-      )}), regenerates ${quotas.weeklyTokenLimit.nextRegenCredits} ${formatResetTime(quotas.weeklyTokenLimit.nextRegenAt)}`,
+      `  ${remaining.toLocaleString()}/${max.toLocaleString()} credits  ${ANSI_DIM}(${(ratio * 100).toFixed(1)}%)${ANSI_RESET}`,
+    );
+    lines.push(`  ${renderBar(ratio, BAR_WIDTH, ANSI_BLUE)}`);
+    lines.push(
+      `  Regen +${regenCredits.toLocaleString()} ${regenTimeStr}  ${ANSI_DIM}Full: ${fullRegenStr}${ANSI_RESET}`,
     );
   }
 
   if (quotas.rollingFiveHourLimit) {
-    const state = quotas.rollingFiveHourLimit.limited ? "limited" : "available";
+    const rf = quotas.rollingFiveHourLimit;
+    const remainingInt = Math.round(rf.remaining);
+    const maxInt = Math.round(rf.max);
+    const ratio = rf.max > 0 ? rf.remaining / rf.max : 0;
+    const state = rf.limited ? `${ANSI_DIM}limited${ANSI_RESET}` : `${ANSI_GREEN}available${ANSI_RESET}`;
+    const tickTimeStr = formatResetTime(rf.nextTickAt);
+
+    // Rolling 5h regenerates 1 request per tick. Time to fully regenerate = (max - remaining) * tick interval.
+    const tickDate = new Date(rf.nextTickAt);
+    const tickIntervalMs = tickDate.getTime() - Date.now();
+    let fullRegenStr = "N/A";
+    if (tickIntervalMs > 0 && remainingInt < maxInt) {
+      const needed = maxInt - remainingInt;
+      const fullRegenMs = tickIntervalMs * needed;
+      fullRegenStr = formatDuration(fullRegenMs);
+    } else if (remainingInt >= maxInt) {
+      fullRegenStr = "full";
+    }
+
+    lines.push(`${ANSI_BOLD}Rolling 5h${ANSI_RESET}`);
     lines.push(
-      `Rolling 5h: ${quotas.rollingFiveHourLimit.remaining}/${quotas.rollingFiveHourLimit.max} ${state}, next tick ${formatResetTime(
-        quotas.rollingFiveHourLimit.nextTickAt,
-      )}`,
+      `  ${remainingInt}/${maxInt} requests  ${state}  ${ANSI_DIM}(tick ${(rf.tickPercent * 100).toFixed(0)}%)${ANSI_RESET}`,
+    );
+    lines.push(`  ${renderBar(ratio, BAR_WIDTH, ANSI_GREEN)}`);
+    lines.push(
+      `  Regen +1 ${tickTimeStr}  ${ANSI_DIM}Full: ${fullRegenStr}${ANSI_RESET}`,
     );
   }
 
-  if (quotas.search?.hourly) {
-    lines.push(
-      `Search hourly: ${formatCount(quotas.search.hourly.requests, quotas.search.hourly.limit)} resets ${formatResetTime(
-        quotas.search.hourly.renewsAt,
-      )}`,
-    );
-  }
-
-  if (quotas.freeToolCalls) {
-    lines.push(
-      `Free tool calls: ${formatCount(quotas.freeToolCalls.requests, quotas.freeToolCalls.limit)} resets ${formatResetTime(
-        quotas.freeToolCalls.renewsAt,
-      )}`,
-    );
-  }
-
-  if (lines.length === 1) {
+  if (lines.length === 0) {
     lines.push(JSON.stringify(quotas, null, 2));
   }
 
@@ -242,7 +284,7 @@ export async function installSynthetic(pi: ExtensionAPI): Promise<void> {
   });
 
   pi.registerCommand("synthetic:quotas", {
-    description: "Show Synthetic subscription and usage quotas",
+    description: "Show Synthetic weekly token and rolling 5h usage quotas",
     handler: async (_args, ctx) => {
       await handleQuotasCommand(ctx);
     },
