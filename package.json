@@ -9,7 +9,9 @@
     "coding-agent"
   ],
   "scripts": {
-    "check": "tsc -p tsconfig.json --noEmit"
+    "check": "tsc -p tsconfig.json --noEmit",
+    "build:test": "tsc -p tsconfig.json --outDir .test-dist --rootDir src",
+    "test": "rm -rf .test-dist && npm run build:test && node --test test/*.test.mjs"
   },
   "pi": {
     "extensions": [
