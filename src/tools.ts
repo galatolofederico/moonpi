@@ -69,7 +69,7 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
     label: "moonpi todo",
     description:
       "Create, replace, update, remove, clear, or list the active TODO list. Always use this in Plan mode and Auto planning before implementation.",
-    promptSnippet: "Manage the required moonpi TODO list",
+    promptSnippet: "Manage the required TODO list",
     promptGuidelines: [
       "Use todo to create concrete, ordered TODO items before acting in Plan or Auto planning.",
       "When a TODO item changes, update it with todo so the current list is returned.",

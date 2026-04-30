@@ -350,13 +350,13 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
     const files = loadContextFiles(event.systemPromptOptions.cwd, controller);
     if (files.length === 0) return undefined;
     const rendered = files
-      .map((file) => `<moonpi-context-file path="${escapeAttribute(file.relativePath)}">\n${file.content}\n</moonpi-context-file>`)
+      .map((file) => `<context-file path="${escapeAttribute(file.relativePath)}">\n${file.content}\n</context-file>`)
       .join("\n\n");
 
     return {
       systemPrompt: `${event.systemPrompt}
 
-## Moonpi Project Context Files
+## Project Context Files
 
 The files selected with /pick are injected below. Keep relevant README.md, SPECS.md, SPRINT.md, and other selected project documents up to date when your work changes setup, behavior, commands, architecture, or project expectations.
 
