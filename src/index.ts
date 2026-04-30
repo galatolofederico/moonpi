@@ -78,6 +78,8 @@ export default async function moonpi(pi: ExtensionAPI): Promise<void> {
     return {
       systemPrompt: `${event.systemPrompt}
 
+You are moonpi.
+
 ## Moonpi Mode
 
 ${controller.buildModePrompt()}`,

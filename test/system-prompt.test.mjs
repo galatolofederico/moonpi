@@ -109,6 +109,7 @@ test("Moonpi mode prompts are injected for every mode", async (t) => {
         const prompt = await harness.buildInjectedPrompt();
 
         assert.match(prompt, /^BASE SYSTEM PROMPT/);
+        assert.match(prompt, /You are moonpi/);
         assert.match(prompt, /## Moonpi Mode/);
         assert.match(prompt, modeCase.expected);
         if (modeCase.hasTodoState === false) {
