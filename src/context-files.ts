@@ -179,16 +179,10 @@ function loadContextFiles(cwd: string, controller: MoonpiController): LoadedCont
   return loaded;
 }
 
-function loadPickerChildren(cwd: string, controller: MoonpiController, node: PickerNode, depth: number, stats: ScanStats): void {
+function loadPickerChildren(cwd: string, controller: MoonpiController, node: PickerNode, stats: ScanStats): void {
   if (node.type !== "dir" || node.loaded) return;
 
   const config = controller.config.contextFiles;
-  if (depth >= config.maxDepth) {
-    stats.truncatedByDepthLimit = true;
-    node.loaded = true;
-    return;
-  }
-
   const ignoredDirs = new Set(config.ignoreDirs);
   const pickableExtensions = new Set(config.pickableExtensions);
   for (const entry of safeReadDir(node.path)) {
@@ -239,7 +233,7 @@ function buildPickerTree(cwd: string, controller: MoonpiController): PickerTreeR
     expanded: true,
     loaded: false,
   };
-  loadPickerChildren(cwd, controller, root, 0, stats);
+  loadPickerChildren(cwd, controller, root, stats);
   return { root, stats };
 }
 
@@ -331,16 +325,16 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
           scrollOffset = Math.min(Math.max(scrollOffset, 0), Math.max(0, rows.length - maxTreeRows));
         }
 
-        function loadPickerDescendants(dirNode: PickerNode, depth: number): void {
-          loadPickerChildren(ctx.cwd, controller, dirNode, depth, tree.stats);
+        function loadPickerDescendants(dirNode: PickerNode): void {
+          loadPickerChildren(ctx.cwd, controller, dirNode, tree.stats);
           for (const child of dirNode.children) {
-            if (child.type === "dir") loadPickerDescendants(child, depth + 1);
+            if (child.type === "dir") loadPickerDescendants(child);
           }
         }
 
-        function toggleNode(node: PickerNode, depth: number): void {
+        function toggleNode(node: PickerNode): void {
           if (node.type === "dir") {
-            loadPickerDescendants(node, depth);
+            loadPickerDescendants(node);
             scanLimitMessage = formatScanLimitMessage(tree.stats);
           }
           const paths = collectFilePaths(node);
@@ -370,8 +364,7 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
           }
           if (matchesKey(data, Key.right)) {
             if (current?.type === "dir") {
-              const currentDepth = rows[cursorIndex]?.depth ?? 0;
-              loadPickerChildren(ctx.cwd, controller, current, currentDepth, tree.stats);
+              loadPickerChildren(ctx.cwd, controller, current, tree.stats);
               scanLimitMessage = formatScanLimitMessage(tree.stats);
               current.expanded = true;
             }
@@ -391,7 +384,7 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
             return;
           }
           if (matchesKey(data, Key.space)) {
-            if (current) toggleNode(current, rows[cursorIndex]?.depth ?? 0);
+            if (current) toggleNode(current);
             invalidate();
             return;
           }
