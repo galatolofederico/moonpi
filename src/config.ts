@@ -49,7 +49,38 @@ export const DEFAULT_CONFIG: MoonpiConfig = {
     maxScannedEntries: 10_000,
     maxDefaultFiles: 25,
     pickableExtensions: DEFAULT_PICKABLE_EXTENSIONS,
-    ignoreDirs: [".git", ".pi", "node_modules", "dist", "build", "coverage", ".next", ".turbo"],
+    ignoreDirs: [
+      // Version control
+      ".git", ".hg", ".svn",
+      // Pi config
+      ".pi",
+      // Node.js
+      "node_modules", ".next", ".turbo", ".nuxt", "bower_components",
+      // Python
+      ".venv", "venv", "__pycache__", ".tox", ".mypy_cache", ".pytest_cache", "site-packages", ".eggs",
+      // Rust
+      "target",
+      // Go
+      "vendor",
+      // Java / Kotlin
+      ".gradle", "out",
+      // Ruby
+      "vendor", "bundle",
+      // Elixir / Erlang
+      "_build", "deps",
+      // Build output
+      "dist", "build", "coverage", ".cache", ".output",
+      // Docker / env
+      ".env",
+      // IDE / editor
+      ".idea", ".vscode", ".vs",
+      // OS
+      "__MACOSX",
+      // Infra
+      ".terraform", ".serverless",
+      // Misc
+      ".parcel-cache",
+    ],
   },
   guards: {
     cwdOnly: true,
