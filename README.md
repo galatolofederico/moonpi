@@ -200,7 +200,8 @@ Watch a drastically sped-up video of `Qwen/Qwen3.6-27B` working unattended for o
 create WebOS a fully functional web-based operating system with apps, games and everything
 ```
 
-https://github.com/user-attachments/assets/a2fae456-b5e5-49e3-ad62-732004435563
+https://github.com/user-attachments/assets/92670a55-a3c4-4c31-a4a2-0afc449f0137
+
 
 And judge the result yourself [here](https://qwen36-27b-moonpi-webos.netlify.app/).
 
