@@ -160,6 +160,6 @@ export class MoonpiController {
     if (this.state.autoPhase === "act") {
       return `Moonpi Auto mode is in Act phase. Execute the TODO list, update TODO statuses with todo as work progresses, and ask questions only when blocked.${sprintText}\n\nCurrent TODO state:\n${todoText}`;
     }
-    return `Moonpi Auto mode is in Plan phase. First inspect and plan. Use todo to produce a concrete TODO list before any edits. If the user only asked a question or no work is needed, call end_conversation instead of producing a TODO list.${sprintText}\n\nCurrent TODO state:\n${todoText}`;
+    return `Moonpi Auto mode is in Plan phase. In this phase you cannot edit files or execute commands — only read-only tools (read, grep, find, ls), the question tool, and the todo tool are available. Explore the codebase with read-only tools, then choose one of two ways to end this phase:\n\n1. If the user's request requires action (editing, running commands, etc.), create a concrete TODO list with the todo tool. Once a non-empty TODO list is set, the mode automatically switches to Act phase where editing tools are enabled.\n2. If the user only asked a question or no work is needed, call the end_conversation tool instead. This ends the session without switching to Act.\n\nDo not create a TODO list for simple questions — just answer them and call end_conversation.${sprintText}\n\nCurrent TODO state:\n${todoText}`;
   }
 }
