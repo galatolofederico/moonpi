@@ -72,6 +72,8 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
     promptSnippet: "Manage the required TODO list",
     promptGuidelines: [
       "Use todo to create concrete, ordered TODO items before acting in Plan or Auto planning.",
+      "When Moonpi Auto mode is in Plan phase, first inspect with read-only tools, then use todo to produce a concrete TODO list before any edits. If the user only asked a question or no work is needed, call end_conversation instead of creating TODOs.",
+      "When executing a TODO list in Act phases, update TODO statuses with todo as work progresses.",
       "When a TODO item changes, update it with todo so the current list is returned.",
     ],
     parameters: TodoParamsSchema,
@@ -442,6 +444,9 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
     description:
       "In Moonpi Auto planning, call this instead of creating TODOs when the user only asked a question or no action is needed.",
     promptSnippet: "End Auto planning without switching to Act",
+    promptGuidelines: [
+      "Use end_conversation only in Moonpi Auto Plan mode when the request needs no edits and no Act phase.",
+    ],
     parameters: EndConversationParamsSchema,
     async execute(_toolCallId, params: Static<typeof EndConversationParamsSchema>) {
       controller.markEndConversationRequested();

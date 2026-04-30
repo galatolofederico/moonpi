@@ -21,7 +21,6 @@ export default async function moonpi(pi: ExtensionAPI): Promise<void> {
   installGuards(pi, controller);
   installContextFiles(pi, controller);
   installSprintWorkflow(pi, controller);
-  await installSynthetic(pi);
 
   pi.registerCommand("moonpi:mode", {
     description: "Switch moonpi mode: plan, act, auto, fast",
@@ -142,4 +141,11 @@ ${controller.buildModePrompt()}`,
       pi.sendUserMessage("Moonpi Auto mode is switching to Act phase. Execute the TODO list now.");
     });
   });
+
+  // Synthetic is optional; keep core Moonpi mode hooks installed even if provider setup fails.
+  try {
+    await installSynthetic(pi);
+  } catch {
+    // Ignore optional provider setup failures.
+  }
 }
