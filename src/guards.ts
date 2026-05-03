@@ -20,11 +20,24 @@ function normalizePath(filePath: string, cwd: string): string {
   return existsSync(absolute) ? realpathSync(absolute) : absolute;
 }
 
-function isInsideCwd(filePath: string, cwd: string): boolean {
-  const cwdReal = existsSync(cwd) ? realpathSync(cwd) : resolve(cwd);
-  const target = normalizePath(filePath, cwdReal);
-  const rel = relative(cwdReal, target);
+function isInsideDir(filePath: string, dir: string): boolean {
+  const dirReal = existsSync(dir) ? realpathSync(dir) : resolve(dir);
+  const target = normalizePath(filePath, dirReal);
+  const rel = relative(dirReal, target);
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
+
+function isInsideCwd(filePath: string, cwd: string): boolean {
+  return isInsideDir(filePath, cwd);
+}
+
+function isInAllowedPath(filePath: string, cwd: string, allowedPaths: string[]): boolean {
+  for (const allowed of allowedPaths) {
+    const expanded = expandPath(allowed);
+    const absolute = isAbsolute(expanded) ? resolve(expanded) : resolve(cwd, expanded);
+    if (isInsideDir(filePath, absolute)) return true;
+  }
+  return false;
 }
 
 function pathFromToolCall(event: ToolCallEvent): string | undefined {
@@ -47,10 +60,10 @@ export function installGuards(pi: ExtensionAPI, controller: MoonpiController): v
     if (!shouldCheckPath(event.toolName)) return undefined;
     const rawPath = pathFromToolCall(event) ?? ".";
 
-    if (controller.config.guards.cwdOnly && !isInsideCwd(rawPath, ctx.cwd)) {
+    if (controller.config.guards.cwdOnly && !isInsideCwd(rawPath, ctx.cwd) && !isInAllowedPath(rawPath, ctx.cwd, controller.config.guards.allowedPaths)) {
       return {
         block: true,
-        reason: `moonpi blocked ${event.toolName}: path is outside the current working directory: ${rawPath}`,
+        reason: `moonpi blocked ${event.toolName}: path is outside the current working directory and allowed paths: ${rawPath}`,
       };
     }
 
