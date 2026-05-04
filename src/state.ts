@@ -49,8 +49,14 @@ export class MoonpiState {
 
   resetForUserPrompt(): void {
     this.endConversationRequested = false;
-    if (this.mode === "auto" || this.mode === "sprint:plan" || this.mode === "sprint:act") {
+    if (this.mode === "sprint:plan" || this.mode === "sprint:act") {
       this.autoPhase = "plan";
+      this.todos = [];
+      this.nextTodoId = 1;
+    }
+    // In auto mode, keep autoPhase sticky — once it transitions to "act" it stays there
+    // until the user explicitly switches mode or starts a new session.
+    if (this.mode === "auto") {
       this.todos = [];
       this.nextTodoId = 1;
     }
