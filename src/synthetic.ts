@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ExtensionCommandContext, ProviderModelConfig } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext, ProviderModelConfig } from "@mariozechner/pi-coding-agent";
 import { SYNTHETIC_MODELS_FALLBACK, parseSyntheticModels } from "./synthetic-models.js";
 
 const SYNTHETIC_PROVIDER = "synthetic";
@@ -233,8 +233,8 @@ async function fetchSyntheticQuotas(apiKey: string, signal?: AbortSignal): Promi
   }
 }
 
-async function getSyntheticApiKey(ctx: ExtensionCommandContext): Promise<string> {
-  const storedKey = await ctx.modelRegistry.authStorage.getApiKey(SYNTHETIC_PROVIDER, { includeFallback: false });
+async function getSyntheticApiKey(ctx: ExtensionCommandContext | ExtensionContext): Promise<string> {
+  const storedKey = await ctx.modelRegistry.getApiKeyForProvider(SYNTHETIC_PROVIDER);
   return storedKey ?? process.env[SYNTHETIC_API_KEY_ENV] ?? "";
 }
 
@@ -279,20 +279,40 @@ async function handleQuotasCommand(ctx: ExtensionCommandContext): Promise<void> 
   ctx.ui.notify(formatSyntheticQuotas(result.data.quotas), "info");
 }
 
+const SYNTHETIC_PROVIDER_CONFIG = {
+  baseUrl: SYNTHETIC_OPENAI_BASE_URL,
+  apiKey: SYNTHETIC_API_KEY_ENV,
+  api: "openai-completions" as const,
+  headers: {
+    Referer: "https://github.com/myname/moonpi",
+    "X-Title": "moonpi",
+  },
+};
+
+async function registerSyntheticProvider(pi: ExtensionAPI, models: ProviderModelConfig[]): Promise<void> {
+  pi.registerProvider(SYNTHETIC_PROVIDER, {
+    ...SYNTHETIC_PROVIDER_CONFIG,
+    models,
+  });
+}
+
 export async function installSynthetic(pi: ExtensionAPI): Promise<void> {
+  // At init time, only env var is available. Auth storage keys are resolved
+  // later in the session_start handler.
   const apiKey = process.env[SYNTHETIC_API_KEY_ENV] ?? "";
   const fetchedModels = await fetchSyntheticModels(apiKey);
   const models = fetchedModels ?? SYNTHETIC_MODELS_FALLBACK;
 
-  pi.registerProvider(SYNTHETIC_PROVIDER, {
-    baseUrl: SYNTHETIC_OPENAI_BASE_URL,
-    apiKey: SYNTHETIC_API_KEY_ENV,
-    api: "openai-completions",
-    headers: {
-      Referer: "https://github.com/myname/moonpi",
-      "X-Title": "moonpi",
-    },
-    models,
+  await registerSyntheticProvider(pi, models);
+
+  // On session start, resolve the API key from auth storage (supports /login)
+  // and refresh the model list from the live API.
+  pi.on("session_start", async (_event, ctx) => {
+    const apiKey = await getSyntheticApiKey(ctx);
+    const fetchedModels = await fetchSyntheticModels(apiKey, ctx.signal);
+    if (fetchedModels) {
+      await registerSyntheticProvider(pi, fetchedModels);
+    }
   });
 
   pi.registerCommand("synthetic:quotas", {
