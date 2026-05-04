@@ -48,6 +48,7 @@ export interface MoonpiConfig {
   };
   guards: {
     cwdOnly: boolean;
+    allowedPaths: string[];
     readBeforeWrite: boolean;
   };
   keybindings: {

@@ -84,6 +84,7 @@ export const DEFAULT_CONFIG: MoonpiConfig = {
   },
   guards: {
     cwdOnly: true,
+    allowedPaths: [],
     readBeforeWrite: true,
   },
   keybindings: {
@@ -152,6 +153,7 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
 
   if (isRecord(raw.guards)) {
     if (typeof raw.guards.cwdOnly === "boolean") next.guards.cwdOnly = raw.guards.cwdOnly;
+    next.guards.allowedPaths = readStringArray(raw.guards.allowedPaths, next.guards.allowedPaths);
     if (typeof raw.guards.readBeforeWrite === "boolean") {
       next.guards.readBeforeWrite = raw.guards.readBeforeWrite;
     }
