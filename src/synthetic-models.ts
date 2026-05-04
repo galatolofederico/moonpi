@@ -1,4 +1,7 @@
 import type { ProviderModelConfig } from "@mariozechner/pi-coding-agent";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { getAgentDir } from "@mariozechner/pi-coding-agent";
 
 const SYNTHETIC_REASONING_EFFORT_MAP = {
   minimal: "low",
@@ -319,6 +322,82 @@ function parsePricingValue(value: string): number {
   if (Number.isNaN(num)) return 0;
   return num * 1_000_000;
 }
+
+// =========================================================================
+// Model cache – persists live API models to disk for fast startup
+// =========================================================================
+
+const CACHE_FILE_NAME = "synthetic-models-cache.json";
+
+/** Maximum age in milliseconds before cached models are considered stale (12h). */
+const CACHE_STALE_MS = 12 * 60 * 60 * 1000;
+
+interface SyntheticModelsCache {
+  /** ISO timestamp of when the cache was last written. */
+  updatedAt: string;
+  /** Model configs from the live Synthetic API. */
+  models: ProviderModelConfig[];
+}
+
+/** Resolve the cache file path (always inside the agent config dir). */
+export function getCacheFilePath(): string {
+  return join(getAgentDir(), CACHE_FILE_NAME);
+}
+
+/**
+ * Read cached synthetic models from disk.
+ * Returns `undefined` when the cache is missing, corrupt, or older than `maxAgeMs`.
+ */
+export function readCachedModels(maxAgeMs: number = CACHE_STALE_MS): ProviderModelConfig[] | undefined {
+  const filePath = getCacheFilePath();
+  if (!existsSync(filePath)) return undefined;
+
+  try {
+    const raw = readFileSync(filePath, "utf-8");
+    const cache = JSON.parse(raw) as SyntheticModelsCache;
+    if (!Array.isArray(cache.models) || cache.models.length === 0) return undefined;
+
+    // Check staleness
+    const updated = new Date(cache.updatedAt).getTime();
+    if (Number.isNaN(updated) || Date.now() - updated > maxAgeMs) return undefined;
+
+    return cache.models;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Write synthetic models to the cache file. Failures are silently ignored. */
+export function writeCachedModels(models: ProviderModelConfig[]): void {
+  const filePath = getCacheFilePath();
+  const cache: SyntheticModelsCache = {
+    updatedAt: new Date().toISOString(),
+    models,
+  };
+  try {
+    writeFileSync(filePath, JSON.stringify(cache), "utf-8");
+  } catch {
+    // Cache writes are best-effort; don't block startup on permission errors, etc.
+  }
+}
+
+/**
+ * Merge cached models with the hardcoded fallback list.
+ *
+ * Cached models win on id collisions (they're fresher from the API).
+ * Models present only in the fallback list are kept so nothing disappears
+ * if the cache is partial.
+ */
+export function mergeWithFallback(cached: ProviderModelConfig[], fallback: ProviderModelConfig[]): ProviderModelConfig[] {
+  const byId = new Map<string, ProviderModelConfig>();
+  for (const m of fallback) byId.set(m.id, m);
+  for (const m of cached) byId.set(m.id, m); // cached wins on collision
+  return [...byId.values()];
+}
+
+// =========================================================================
+// API response parsing
+// =========================================================================
 
 export function parseSyntheticModels(data: SyntheticModelResponse[]): ProviderModelConfig[] {
   return data.map((model) => {

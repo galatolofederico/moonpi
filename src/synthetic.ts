@@ -1,5 +1,5 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext, ProviderModelConfig } from "@mariozechner/pi-coding-agent";
-import { SYNTHETIC_MODELS_FALLBACK, parseSyntheticModels } from "./synthetic-models.js";
+import { SYNTHETIC_MODELS_FALLBACK, mergeWithFallback, parseSyntheticModels, readCachedModels, writeCachedModels } from "./synthetic-models.js";
 
 const SYNTHETIC_PROVIDER = "synthetic";
 const SYNTHETIC_API_KEY_ENV = "SYNTHETIC_API_KEY";
@@ -234,7 +234,7 @@ async function fetchSyntheticQuotas(apiKey: string, signal?: AbortSignal): Promi
 }
 
 async function getSyntheticApiKey(ctx: ExtensionCommandContext | ExtensionContext): Promise<string> {
-  const storedKey = await ctx.modelRegistry.getApiKeyForProvider(SYNTHETIC_PROVIDER);
+  const storedKey = await ctx.modelRegistry?.getApiKeyForProvider(SYNTHETIC_PROVIDER);
   return storedKey ?? process.env[SYNTHETIC_API_KEY_ENV] ?? "";
 }
 
@@ -289,30 +289,56 @@ const SYNTHETIC_PROVIDER_CONFIG = {
   },
 };
 
-async function registerSyntheticProvider(pi: ExtensionAPI, models: ProviderModelConfig[]): Promise<void> {
+function registerSyntheticProvider(pi: ExtensionAPI, models: ProviderModelConfig[]): void {
   pi.registerProvider(SYNTHETIC_PROVIDER, {
     ...SYNTHETIC_PROVIDER_CONFIG,
     models,
   });
 }
 
-export async function installSynthetic(pi: ExtensionAPI): Promise<void> {
-  // At init time, only env var is available. Auth storage keys are resolved
-  // later in the session_start handler.
-  const apiKey = process.env[SYNTHETIC_API_KEY_ENV] ?? "";
-  const fetchedModels = await fetchSyntheticModels(apiKey);
-  const models = fetchedModels ?? SYNTHETIC_MODELS_FALLBACK;
+/**
+ * Fetch live models, persist to cache, and re-register the provider.
+ * Returns the fetched models (or null on failure).
+ */
+async function refreshLiveModels(pi: ExtensionAPI, apiKey: string, signal?: AbortSignal): Promise<ProviderModelConfig[] | null> {
+  const fetchedModels = await fetchSyntheticModels(apiKey, signal);
+  if (fetchedModels) {
+    writeCachedModels(fetchedModels);
+    registerSyntheticProvider(pi, fetchedModels);
+  }
+  return fetchedModels;
+}
 
-  await registerSyntheticProvider(pi, models);
+export async function installSynthetic(pi: ExtensionAPI): Promise<void> {
+  // Fast path: read cached models from disk (synchronous, no network).
+  // This ensures models are available immediately at init time, which is
+  // critical for model restoration on session resume. Without this, models
+  // that aren't in the fallback list (e.g. newly-added Synthetic models)
+  // would not be found by modelRegistry.find() at startup.
+  const cachedModels = readCachedModels();
+  const initialModels = cachedModels
+    ? mergeWithFallback(cachedModels, SYNTHETIC_MODELS_FALLBACK)
+    : SYNTHETIC_MODELS_FALLBACK;
+
+  registerSyntheticProvider(pi, initialModels);
+
+  // Background: fetch live models from the API and update the provider + cache.
+  // At init time only the env-var key is available; auth storage keys are
+  // resolved later in the session_start handler.
+  const apiKey = process.env[SYNTHETIC_API_KEY_ENV] ?? "";
+  if (apiKey) {
+    // Fire and forget – we already registered with cached/fallback models,
+    // so startup isn't blocked on the network request.
+    refreshLiveModels(pi, apiKey).catch(() => {
+      // Silently ignore – the initialModels registration is still valid.
+    });
+  }
 
   // On session start, resolve the API key from auth storage (supports /login)
   // and refresh the model list from the live API.
   pi.on("session_start", async (_event, ctx) => {
     const apiKey = await getSyntheticApiKey(ctx);
-    const fetchedModels = await fetchSyntheticModels(apiKey, ctx.signal);
-    if (fetchedModels) {
-      await registerSyntheticProvider(pi, fetchedModels);
-    }
+    await refreshLiveModels(pi, apiKey, ctx.signal);
   });
 
   pi.registerCommand("synthetic:quotas", {
