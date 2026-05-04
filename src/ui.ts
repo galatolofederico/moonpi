@@ -1,6 +1,10 @@
 import { CustomEditor, type ExtensionContext, type KeybindingsManager, type Theme } from "@mariozechner/pi-coding-agent";
 import type { EditorTheme, TUI } from "@mariozechner/pi-tui";
+import { createRequire } from "node:module";
 import type { MoonpiMode } from "./types.js";
+
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json") as { version: string };
 
 /**
  * MoonPi crescent ASCII logo with ANSI color support via the theme.
@@ -23,7 +27,7 @@ function getMoonpiBanner(theme: Theme): string[] {
     `${m2("     .' .-'")}${m3("`")}              ${line(".-'   '-.")}`,
     `${m1("    /  /")}        ${pi("\u03C0")}       ${title("moonpi")}   ${line(")")}`,
     `${m0("    |  |")}                ${line("'-.   .-'")}`,
-    `${m1("    \\  '.___.;")}            ${line("'-'")}   ${muted("coding agent")}`,
+    `${m1("    \\  '.___.;")}            ${line("'-'")}   ${muted(`coding agent (v${version})`)}`,
     `${m2("     '._  _.'")}`,
     `${m3("        \`\`")}`,
     "",
