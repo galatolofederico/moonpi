@@ -192,9 +192,16 @@ Configure `.pi/moonpi.json` (project) or `~/.pi/agent/moonpi.json` (global):
       "target", "dist", "build", "coverage",
       ".env", ".gradle", ".idea", ".vscode"
     ]
+  },
+  "guards": {
+    "cwdOnly": true,
+    "allowedPaths": ["~/.pi/agent"],
+    "readBeforeWrite": true
   }
 }
 ```
+
+#### Context files
 
 | Field | Default | Description |
 | --- | --- | --- |
@@ -206,6 +213,14 @@ Configure `.pi/moonpi.json` (project) or `~/.pi/agent/moonpi.json` (global):
 | `maxDefaultFiles` | `25` | Maximum files selected by auto-discovery. Does not affect `/pick` selections |
 | `pickableExtensions` | *(80+ entries, see defaults)* | File extensions (`.ts`, `.py`) and exact filenames (`Dockerfile`, `Makefile`) shown in `/pick`. Non-matching files are hidden from the picker |
 | `ignoreDirs` | *(40+ entries, see defaults)* | Directory names skipped during both auto-discovery and `/pick`. Covers VCS, language-specific caches, build output, IDE folders, and more |
+
+#### Guards
+
+| Field | Default | Description |
+| --- | --- | --- |
+| `cwdOnly` | `true` | Reject file access outside the current working directory |
+| `allowedPaths` | `[]` | Directories permitted for **read** access even when `cwdOnly` is enabled. Supports `~` expansion and relative paths (resolved from cwd) |
+| `readBeforeWrite` | `true` | Require the model to read a file before writing or editing it |
 
 Recommended tuning for huge monorepos:
 
@@ -237,6 +252,25 @@ moonpi adds practical file access rules.
 Reads, writes, and edits outside the current working directory are rejected.
 
 This is not presented as magical security theater. It is a behavioral constraint that helps steer the model toward project-scoped work.
+
+#### Allowed paths
+
+When `cwdOnly` is enabled, you can grant the agent read access to specific directories outside the project via `guards.allowedPaths`. This is useful when the agent needs to read its own documentation, extension files, or shared configs that live outside the working directory.
+
+```json
+{
+  "guards": {
+    "allowedPaths": [
+      "~/.pi/agent",
+      "/home/user/Projects"
+    ]
+  }
+}
+```
+
+Paths support `~` expansion (resolved to home directory) and relative paths (resolved from cwd). Only **read** access is granted for allowed paths — writes and edits are still restricted to the working directory.
+
+The setting works in both global (`~/.pi/agent/moonpi.json`) and project-level (`.pi/moonpi.json`) configs.
 
 ### Read before write
 
