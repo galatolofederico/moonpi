@@ -67,7 +67,7 @@ test("todo tool mutates, persists, renders status, and triggers Auto Act transit
 
     await harness.emit("agent_end", { messages: [] });
     await flushImmediate();
-    assert.equal(harness.sentUserMessages.at(-1), "Auto mode is switching to Act phase. Execute the TODO list now.");
+    assert.match(harness.sentUserMessages.at(-1), /^Auto mode is switching to Act phase\. Execute the TODO list now\.\n\n#1 \[/);
     assert.deepEqual(harness.activeTools, stableMoonpiTools);
   } finally {
     await harness.cleanup();

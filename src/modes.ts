@@ -191,6 +191,10 @@ Creating or updating a non-empty TODO list ends Auto planning. The system then r
 
 Auto mode is switching to Act phase. Execute the TODO list now.
 
+#1 [ ] First task
+#2 [ ] Second task
+...
+
 That user message is the phase-change signal. After you see it, you are in Act phase:
 
 - Execute the TODO list.

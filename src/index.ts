@@ -3,6 +3,7 @@ import { formatConfig } from "./config.js";
 import { installContextFiles } from "./context-files.js";
 import { installGuards } from "./guards.js";
 import { MoonpiController } from "./modes.js";
+import { formatTodoList } from "./state.js";
 import { installSprintWorkflow } from "./sprint.js";
 import { installSynthetic } from "./synthetic.js";
 import { installMoonpiTools } from "./tools.js";
@@ -128,7 +129,10 @@ ${controller.buildModePrompt()}`,
 
     controller.switchAutoToAct(ctx);
     setImmediate(() => {
-      pi.sendUserMessage("Auto mode is switching to Act phase. Execute the TODO list now.");
+      const todoList = formatTodoList(controller.state.todos);
+      pi.sendUserMessage(`Auto mode is switching to Act phase. Execute the TODO list now.
+
+${todoList}`);
     });
   });
 
