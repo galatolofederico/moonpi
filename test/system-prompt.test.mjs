@@ -60,17 +60,17 @@ const modeCases = [
   {
     name: "plan",
     setup: (harness) => setMode(harness, "plan"),
-    expectedState: /Current Moonpi runtime state: moonpi:plan\./,
+    expected: /## Plan Mode/,
   },
   {
     name: "act",
     setup: (harness) => setMode(harness, "act"),
-    expectedState: /Current Moonpi runtime state: moonpi:act\./,
+    expected: /## Act Mode/,
   },
   {
     name: "auto plan",
     setup: async () => undefined,
-    expectedState: /Current Moonpi runtime state: moonpi:auto plan\./,
+    expected: /## Auto Mode/,
   },
   {
     name: "auto act",
@@ -78,17 +78,17 @@ const modeCases = [
       await createTodoList(harness);
       await advanceAgentEnd(harness);
     },
-    expectedState: /Current Moonpi runtime state: moonpi:auto act\./,
+    expected: /## Auto Mode/,
   },
   {
     name: "fast",
     setup: (harness) => setMode(harness, "fast"),
-    expectedState: /Current Moonpi runtime state: moonpi:fast\./,
+    expected: /## Fast Mode/,
   },
   {
     name: "sprint plan",
     setup: (harness) => enterSprintPlan(harness),
-    expectedState: /Current Moonpi runtime state: moonpi:sprint plan, sprint 1, phase 1\./,
+    expected: /## Sprint Plan Mode/,
   },
   {
     name: "sprint act",
@@ -97,7 +97,7 @@ const modeCases = [
       await createTodoList(harness);
       await advanceAgentEnd(harness);
     },
-    expectedState: /Current Moonpi runtime state: moonpi:sprint act, sprint 1, phase 1\./,
+    expected: /## Sprint Act Mode/,
   },
 ];
 
@@ -111,15 +111,31 @@ test("Moonpi mode prompts are injected for every mode", async (t) => {
 
         assert.match(prompt, /^BASE SYSTEM PROMPT/);
         assert.match(prompt, /You are moonpi/);
-        assert.match(prompt, /## Moonpi Mode/);
-        assert.match(prompt, /same advertised tool set across modes/);
-        assert.match(prompt, /TODO state is not embedded in the system prompt/);
-        assert.match(prompt, modeCase.expectedState);
+        assert.match(prompt, modeCase.expected);
+        assert.doesNotMatch(prompt, /Current Moonpi runtime state:/);
         assert.doesNotMatch(prompt, /Current TODO state:/);
         assert.doesNotMatch(prompt, /Implement the planned change/);
       } finally {
         await harness.cleanup();
       }
     });
+  }
+});
+
+test("Moonpi Auto Plan and Auto Act share the same injected prompt", async () => {
+  const planHarness = await createMoonpiHarness();
+  const actHarness = await createMoonpiHarness();
+  try {
+    const planPrompt = await planHarness.buildInjectedPrompt();
+    await createTodoList(actHarness);
+    await advanceAgentEnd(actHarness);
+    const actPrompt = await actHarness.buildInjectedPrompt();
+
+    assert.equal(actPrompt, planPrompt);
+    assert.match(planPrompt, /Auto mode uses this same system prompt for both Plan and Act phases/);
+    assert.match(planPrompt, /Auto mode is switching to Act phase\. Execute the TODO list now\./);
+  } finally {
+    await planHarness.cleanup();
+    await actHarness.cleanup();
   }
 });

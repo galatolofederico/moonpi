@@ -148,30 +148,80 @@ export class MoonpiController {
   }
 
   buildModePrompt(): string {
-    return `Moonpi keeps the same advertised tool set across modes to preserve provider prompt-cache affinity. Mode rules are enforced when tools are called.
-
-## Moonpi Workflow
-
-- Plan phases are moonpi:plan, moonpi:auto plan, and moonpi:sprint plan. In Plan phases, inspect with read, grep, find, and ls. Do not use bash, edit, or write; those calls are blocked. Create or update a concrete TODO list with todo before ending the turn.
-- Act phases are moonpi:act, moonpi:auto act, and moonpi:sprint act. In Act phases, execute the TODO list, update TODO statuses with todo as work progresses, and ask questions only when blocked.
-- Auto mode starts in Plan phase. If the request needs action, create a non-empty TODO list; Moonpi then switches to Act with the planning conversation retained. If the user only asked a question or no action is needed, call end_conversation instead of creating TODOs.
-- Fast mode is direct execution. Work with read, grep, find, ls, bash, edit, and write. todo, question, and end_conversation are disabled in Fast mode.
-- Sprint modes are managed by /sprint:loop. In sprint planning, make a TODO list for the current phase. In sprint acting, complete the phase and call end_phase when the phase is done.
-- question is unavailable in Fast and Sprint modes. end_conversation is only valid in Auto Plan. end_phase is only useful when a sprint loop is active.
-- TODO state is not embedded in the system prompt. Use todo with action "list" when you need the current TODO list.
-- If a tool returns a Moonpi mode error, respect the error, adapt to the active phase, and continue with allowed tools.
-
-Current Moonpi runtime state: ${this.describeCurrentState()}.`;
-  }
-
-  private describeCurrentState(): string {
-    if (this.state.mode === "auto") return `moonpi:auto ${this.state.autoPhase}`;
-    if (this.state.mode === "sprint:plan" || this.state.mode === "sprint:act") {
-      const phase = this.state.mode === "sprint:act" ? "act" : "plan";
-      const sprint = this.state.sprintLoop;
-      if (!sprint) return `moonpi:sprint ${phase}`;
-      return `moonpi:sprint ${phase}, sprint ${sprint.sprintNumber}, phase ${sprint.currentPhaseId ?? "unknown"}`;
-    }
-    return `moonpi:${this.state.mode}`;
+    if (this.state.mode === "auto") return AUTO_MODE_PROMPT;
+    if (this.state.mode === "plan") return PLAN_MODE_PROMPT;
+    if (this.state.mode === "act") return ACT_MODE_PROMPT;
+    if (this.state.mode === "fast") return FAST_MODE_PROMPT;
+    if (this.state.mode === "sprint:plan") return SPRINT_PLAN_MODE_PROMPT;
+    return SPRINT_ACT_MODE_PROMPT;
   }
 }
+
+const PLAN_MODE_PROMPT = `## Plan Mode
+
+You are in Plan mode. This mode is for investigation and planning before implementation.
+
+- Use read, grep, find, and ls to inspect the project.
+- Do not use bash, edit, or write; The system blocks those tools in this mode.
+- Ask concise clarifying questions with question when a user decision is required.
+- Create or update a concrete TODO list with todo before ending the turn.
+- Do not implement changes in Plan mode. The TODO list should make the next Act-mode work explicit.`;
+
+const ACT_MODE_PROMPT = `## Act Mode
+
+You are in Act mode. This mode is for implementation.
+
+- Use read, grep, find, ls, bash, edit, and write as needed.
+- Use todo when it helps track progress, especially when executing a plan created earlier.
+- Ask questions only when blocked by a real user decision.
+- Keep changes scoped to the user's request and verify the result when practical.`;
+
+const AUTO_MODE_PROMPT = `## Auto Mode
+
+Auto mode uses this same system prompt for both Plan and Act phases. The system prompt must not change when Auto advances from Plan to Act, so the conversation can keep provider prompt-cache affinity.
+
+Auto begins in Plan phase. In Plan phase:
+
+- Use read, grep, find, and ls to inspect the project.
+- Do not use bash, edit, or write; The system blocks those tools until Act phase.
+- If the request needs implementation, create a concrete non-empty TODO list with todo.
+- If the user only asked a question or no action is needed, call end_conversation instead of creating TODOs.
+
+Creating or updating a non-empty TODO list ends Auto planning. The system then retains the conversation, switches runtime to Act phase, and sends this user message:
+
+Auto mode is switching to Act phase. Execute the TODO list now.
+
+That user message is the phase-change signal. After you see it, you are in Act phase:
+
+- Execute the TODO list.
+- Use read, grep, find, ls, bash, edit, and write as needed.
+- Update TODO statuses with todo as work progresses.
+- Ask questions only when blocked by a real user decision.`;
+
+const FAST_MODE_PROMPT = `## Fast Mode
+
+You are in Fast mode. Work directly.
+
+- Use read, grep, find, ls, bash, edit, and write as needed.
+- Do not use todo, question, or end_conversation; The system disables those tools in Fast mode.
+- Keep the response and edits proportional to the request.`;
+
+const SPRINT_PLAN_MODE_PROMPT = `## Sprint Plan Mode
+
+You are in Sprint Plan mode. The current sprint phase instructions are provided in the conversation, not in this system prompt.
+
+- Work only on the current sprint phase.
+- Use read, grep, find, and ls to inspect the project.
+- Do not use bash, edit, or write; The system blocks those tools in this mode.
+- The question tool is unavailable. Make a reasonable judgment and document assumptions in TODO items when needed.
+- Create or update a concrete TODO list with todo before ending the turn.`;
+
+const SPRINT_ACT_MODE_PROMPT = `## Sprint Act Mode
+
+You are in Sprint Act mode. The current sprint phase instructions are provided in the conversation, not in this system prompt.
+
+- Work only on the current sprint phase.
+- Execute the TODO list and update TODO statuses with todo as work progresses.
+- Use read, grep, find, ls, bash, edit, and write as needed.
+- The question tool is unavailable. Make a reasonable judgment when blocked and document important assumptions.
+- When the current phase is complete and verified, call end_phase with a concise summary.`;

@@ -80,8 +80,6 @@ export default async function moonpi(pi: ExtensionAPI): Promise<void> {
 
 You are moonpi.
 
-## Moonpi Mode
-
 ${controller.buildModePrompt()}`,
     };
   });
@@ -130,7 +128,7 @@ ${controller.buildModePrompt()}`,
 
     controller.switchAutoToAct(ctx);
     setImmediate(() => {
-      pi.sendUserMessage("Moonpi Auto mode is switching to Act phase. Execute the TODO list now.");
+      pi.sendUserMessage("Auto mode is switching to Act phase. Execute the TODO list now.");
     });
   });
 
