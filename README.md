@@ -55,7 +55,7 @@ npm install -g @mariozechner/pi-coding-agent
 Then, install the `moonpi` extension set directly via `pi`:
 
 ```bash
-pi install git:github.com/galatolofederico/moonpi@v0.3.3
+pi install git:github.com/galatolofederico/moonpi@v0.4
 ```
 
 
