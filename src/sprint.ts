@@ -236,6 +236,10 @@ Do not start implementing anything. Only create the sprint planning files.`,
     description:
       "Finish the active moonpi sprint phase. This marks the phase complete in TASKS.md, then moonpi compacts context and continues with the next phase.",
     promptSnippet: "Finish the active sprint phase",
+    promptGuidelines: [
+      "Use end_phase only when a Moonpi sprint loop is active and the current sprint phase is complete.",
+      "Do not call end_phase for ordinary Plan, Auto, Act, or Fast mode work.",
+    ],
     parameters: EndPhaseParamsSchema,
     async execute(_toolCallId, params: EndPhaseParams, _signal, _onUpdate, ctx) {
       const sprintNumber = params.sprintNumber ?? controller.state.sprintLoop?.sprintNumber;

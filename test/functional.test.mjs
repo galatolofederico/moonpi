@@ -9,6 +9,8 @@ const defaultConfig = {
   guards: { cwdOnly: false, readBeforeWrite: false },
 };
 
+const stableMoonpiTools = ["read", "grep", "find", "ls", "bash", "edit", "write", "todo", "question", "end_conversation", "end_phase"];
+
 function textOf(result) {
   return result.content.map((item) => item.text ?? "").join("\n");
 }
@@ -24,17 +26,17 @@ test("registers the expected commands, tools, UI, status, and default active too
     assert.ok(harness.editorFactory, "startup installs a custom editor");
     assert.ok(harness.terminalInputHandler, "startup installs a terminal input handler");
     assert.deepEqual(harness.status, { key: "moonpi", value: "moonpi auto:plan 0/0" });
-    assert.deepEqual(harness.activeTools, ["read", "grep", "find", "ls", "todo", "question", "end_conversation"]);
+    assert.deepEqual(harness.activeTools, stableMoonpiTools);
   } finally {
     await harness.cleanup();
   }
 });
 
-test("mode command switches tools and rejects internal or unknown modes", async () => {
+test("mode command keeps the cache-stable tool set and rejects internal or unknown modes", async () => {
   const harness = await createMoonpiHarness({ config: defaultConfig });
   try {
     await harness.runCommand("moonpi:mode", "fast");
-    assert.deepEqual(harness.activeTools, ["read", "grep", "find", "ls", "bash", "edit", "write"]);
+    assert.deepEqual(harness.activeTools, stableMoonpiTools);
     assert.equal(harness.notifications.at(-1).message, "moonpi mode: fast");
 
     await harness.runCommand("moonpi:mode", "sprint:plan");
@@ -66,7 +68,7 @@ test("todo tool mutates, persists, renders status, and triggers Auto Act transit
     await harness.emit("agent_end", { messages: [] });
     await flushImmediate();
     assert.equal(harness.sentUserMessages.at(-1), "Moonpi Auto mode is switching to Act phase. Execute the TODO list now.");
-    assert.deepEqual(harness.activeTools, ["read", "grep", "find", "ls", "bash", "edit", "write", "todo", "question"]);
+    assert.deepEqual(harness.activeTools, stableMoonpiTools);
   } finally {
     await harness.cleanup();
   }
@@ -79,7 +81,7 @@ test("end_conversation terminates Auto planning without switching to Act", async
     assert.equal(result.terminate, true);
     assert.match(textOf(result), /Conversation ended without an Act phase/);
     await harness.emit("agent_end", { messages: [] });
-    assert.deepEqual(harness.activeTools, ["read", "grep", "find", "ls", "todo", "question", "end_conversation"]);
+    assert.deepEqual(harness.activeTools, stableMoonpiTools);
     assert.equal(harness.sentUserMessages.length, 0);
   } finally {
     await harness.cleanup();
@@ -148,6 +150,7 @@ test("guards enforce cwd-only access and read-before-write tracking", async () =
     assert.equal(results.find(Boolean).block, true);
     assert.match(results.find(Boolean).reason, /outside the current working directory/);
 
+    await harness.runCommand("moonpi:mode", "act");
     results = await harness.emit("tool_call", { toolName: "write", input: { path: "file.txt" } });
     assert.equal(results.find(Boolean).block, true);
     assert.match(results.find(Boolean).reason, /read the file first/);
@@ -158,6 +161,15 @@ test("guards enforce cwd-only access and read-before-write tracking", async () =
 
     results = await harness.emit("tool_call", { toolName: "write", input: { path: "new.txt" } });
     assert.equal(results.find(Boolean), undefined, "new files do not require a prior read");
+
+    await harness.runCommand("moonpi:mode", "plan");
+    results = await harness.emit("tool_call", { toolName: "bash", input: { command: "pwd" } });
+    assert.equal(results.find(Boolean).block, true);
+    assert.match(results.find(Boolean).reason, /read-only/);
+
+    results = await harness.emit("tool_call", { toolName: "write", input: { path: "new.txt" } });
+    assert.equal(results.find(Boolean).block, true);
+    assert.match(results.find(Boolean).reason, /read-only/);
   } finally {
     await harness.cleanup();
   }
@@ -346,7 +358,7 @@ test("sprint:loop enters sprint plan, end_phase completes phases, compacts, and 
 
     await harness.runCommand("sprint:loop", "");
     assert.match(harness.sentUserMessages.at(-1), /Sprint 1, Phase 1: Setup/);
-    assert.deepEqual(harness.activeTools, ["read", "grep", "find", "ls", "todo", "end_conversation", "end_phase"]);
+    assert.deepEqual(harness.activeTools, stableMoonpiTools);
 
     let result = await harness.callTool("end_phase", { summary: "setup done" });
     assert.equal(result.terminate, true);
@@ -362,7 +374,7 @@ test("sprint:loop enters sprint plan, end_phase completes phases, compacts, and 
     result = await harness.callTool("end_phase", { phaseId: "2", summary: "finish done" });
     assert.equal(result.terminate, true);
     assert.match(textOf(result), /Sprint 1 is complete/);
-    assert.deepEqual(harness.activeTools, ["read", "grep", "find", "ls", "todo", "question", "end_conversation"]);
+    assert.deepEqual(harness.activeTools, stableMoonpiTools);
   } finally {
     await harness.cleanup();
   }
@@ -396,8 +408,11 @@ test("session snapshots restore mode, todos, selected context files, and read gu
     await runtime.emit("session_start");
 
     const prompt = await runtime.buildInjectedPrompt("BASE");
-    assert.match(prompt, /Persist me \(because\)/);
+    assert.doesNotMatch(prompt, /Persist me \(because\)/);
+    const list = await runtime.callTool("todo", { action: "list" });
+    assert.match(textOf(list), /Persist me \(because\)/);
     assert.match(prompt, /<context-file path="README.md">\ndocs/);
+    await runtime.runCommand("moonpi:mode", "act");
     const guardResults = await runtime.emit("tool_call", { toolName: "write", input: { path: "file.txt" } });
     assert.equal(guardResults.find(Boolean), undefined);
   } finally {

@@ -55,8 +55,20 @@ function shouldRequirePriorRead(toolName: string): boolean {
   return toolName === "write" || toolName === "edit";
 }
 
+function shouldBlockInPlanPhase(toolName: string): boolean {
+  return toolName === "bash" || toolName === "write" || toolName === "edit";
+}
+
 export function installGuards(pi: ExtensionAPI, controller: MoonpiController): void {
   pi.on("tool_call", async (event, ctx) => {
+    if (controller.isPlanPhase() && shouldBlockInPlanPhase(event.toolName)) {
+      const allowedTools = controller.isQuestionAllowed() ? "read, grep, find, ls, todo, or question" : "read, grep, find, ls, or todo";
+      return {
+        block: true,
+        reason: `moonpi blocked ${event.toolName}: the current Moonpi phase is read-only. Use ${allowedTools} instead.`,
+      };
+    }
+
     if (!shouldCheckPath(event.toolName)) return undefined;
     const rawPath = pathFromToolCall(event) ?? ".";
 

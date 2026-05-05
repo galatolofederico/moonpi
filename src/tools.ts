@@ -63,18 +63,26 @@ const EndConversationParamsSchema = Type.Object({
   reason: Type.Optional(Type.String({ description: "Why no TODO/action phase is needed" })),
 });
 
+interface EndConversationDetails {
+  reason?: string | null;
+  error?: string;
+  mode?: string;
+  autoPhase?: string;
+}
+
 export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiController): void {
   pi.registerTool({
     name: "todo",
     label: "moonpi todo",
     description:
-      "Create, replace, update, remove, clear, or list the active TODO list. Always use this in Plan mode and Auto planning before implementation.",
+      "Create, replace, update, remove, clear, or list the active TODO list. Use this in Plan phases before implementation and in Act phases to track progress.",
     promptSnippet: "Manage the required TODO list",
     promptGuidelines: [
       "Use todo to create concrete, ordered TODO items before acting in Plan or Auto planning.",
       "When Moonpi Auto mode is in Plan phase, first inspect with read-only tools, then use todo to produce a concrete TODO list before any edits. If the user only asked a question or no work is needed, call end_conversation instead of creating TODOs.",
       "When executing a TODO list in Act phases, update TODO statuses with todo as work progresses.",
-      "When a TODO item changes, update it with todo so the current list is returned.",
+      "When a TODO item changes, update it with todo so the current list is returned. Use todo with action 'list' if the current TODO state is not visible.",
+      "todo is disabled in Moonpi Fast mode even though its schema remains advertised for prompt-cache stability.",
     ],
     parameters: TodoParamsSchema,
     async execute(_toolCallId, params: TodoParams, _signal, _onUpdate, ctx) {
@@ -172,7 +180,7 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
     ],
     parameters: QuestionParamsSchema,
     async execute(_toolCallId, params: QuestionParams, _signal, _onUpdate, ctx) {
-      if (controller.state.mode === "fast" || controller.state.mode === "sprint:plan" || controller.state.mode === "sprint:act") {
+      if (!controller.isQuestionAllowed()) {
         return { content: [{ type: "text", text: "question is disabled in Sprint and Fast modes." }], details: undefined };
       }
       if (!ctx.hasUI) {
@@ -438,7 +446,7 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
     },
   });
 
-  pi.registerTool({
+  pi.registerTool<typeof EndConversationParamsSchema, EndConversationDetails>({
     name: "end_conversation",
     label: "end conversation",
     description:
@@ -449,11 +457,17 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
     ],
     parameters: EndConversationParamsSchema,
     async execute(_toolCallId, params: Static<typeof EndConversationParamsSchema>) {
+      if (!controller.isEndConversationAllowed()) {
+        return {
+          content: [{ type: "text", text: "end_conversation is only available in Moonpi Auto Plan phase." }],
+          details: { error: "invalid mode", mode: controller.state.mode, autoPhase: controller.state.autoPhase } satisfies EndConversationDetails,
+        };
+      }
       controller.markEndConversationRequested();
       const reason = params.reason ? ` Reason: ${params.reason}` : "";
       return {
         content: [{ type: "text", text: `Conversation ended without an Act phase.${reason}` }],
-        details: { reason: params.reason ?? null },
+        details: { reason: params.reason ?? null } satisfies EndConversationDetails,
         terminate: true,
       };
     },

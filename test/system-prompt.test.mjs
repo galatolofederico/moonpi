@@ -4,6 +4,8 @@ import { join } from "node:path";
 import test from "node:test";
 import { createMoonpiHarness } from "./harness.mjs";
 
+const stableMoonpiTools = ["read", "grep", "find", "ls", "bash", "edit", "write", "todo", "question", "end_conversation", "end_phase"];
+
 async function setMode(harness, mode) {
   const command = harness.commands.get("moonpi:mode");
   assert.ok(command, "moonpi:mode command should be registered");
@@ -48,7 +50,7 @@ test("Moonpi prompt setup does not use Synthetic API keys or network", async () 
     assert.ok(endConversation, "end_conversation tool should be registered");
     assert.match(todo.promptGuidelines.join("\n"), /When Moonpi Auto mode is in Plan phase/);
     assert.match(endConversation.promptGuidelines.join("\n"), /Use end_conversation only in Moonpi Auto Plan mode/);
-    assert.deepEqual(harness.activeTools, ["read", "grep", "find", "ls", "todo", "question", "end_conversation"]);
+    assert.deepEqual(harness.activeTools, stableMoonpiTools);
   } finally {
     await harness.cleanup();
   }
@@ -58,17 +60,17 @@ const modeCases = [
   {
     name: "plan",
     setup: (harness) => setMode(harness, "plan"),
-    expected: /Moonpi Plan mode is active/,
+    expectedState: /Current Moonpi runtime state: moonpi:plan\./,
   },
   {
     name: "act",
     setup: (harness) => setMode(harness, "act"),
-    expected: /Moonpi Act mode is active/,
+    expectedState: /Current Moonpi runtime state: moonpi:act\./,
   },
   {
     name: "auto plan",
     setup: async () => undefined,
-    expected: /Moonpi Auto mode is in Plan phase/,
+    expectedState: /Current Moonpi runtime state: moonpi:auto plan\./,
   },
   {
     name: "auto act",
@@ -76,18 +78,17 @@ const modeCases = [
       await createTodoList(harness);
       await advanceAgentEnd(harness);
     },
-    expected: /Moonpi Auto mode is in Act phase/,
+    expectedState: /Current Moonpi runtime state: moonpi:auto act\./,
   },
   {
     name: "fast",
     setup: (harness) => setMode(harness, "fast"),
-    expected: /Moonpi Fast mode is active/,
-    hasTodoState: false,
+    expectedState: /Current Moonpi runtime state: moonpi:fast\./,
   },
   {
     name: "sprint plan",
     setup: (harness) => enterSprintPlan(harness),
-    expected: /Moonpi Sprint Plan mode is active/,
+    expectedState: /Current Moonpi runtime state: moonpi:sprint plan, sprint 1, phase 1\./,
   },
   {
     name: "sprint act",
@@ -96,7 +97,7 @@ const modeCases = [
       await createTodoList(harness);
       await advanceAgentEnd(harness);
     },
-    expected: /Moonpi Sprint Act mode is active/,
+    expectedState: /Current Moonpi runtime state: moonpi:sprint act, sprint 1, phase 1\./,
   },
 ];
 
@@ -111,12 +112,11 @@ test("Moonpi mode prompts are injected for every mode", async (t) => {
         assert.match(prompt, /^BASE SYSTEM PROMPT/);
         assert.match(prompt, /You are moonpi/);
         assert.match(prompt, /## Moonpi Mode/);
-        assert.match(prompt, modeCase.expected);
-        if (modeCase.hasTodoState === false) {
-          assert.doesNotMatch(prompt, /Current TODO state:/);
-        } else {
-          assert.match(prompt, /Current TODO state:/);
-        }
+        assert.match(prompt, /same advertised tool set across modes/);
+        assert.match(prompt, /TODO state is not embedded in the system prompt/);
+        assert.match(prompt, modeCase.expectedState);
+        assert.doesNotMatch(prompt, /Current TODO state:/);
+        assert.doesNotMatch(prompt, /Implement the planned change/);
       } finally {
         await harness.cleanup();
       }
