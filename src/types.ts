@@ -32,6 +32,9 @@ export interface MoonpiSnapshot {
 export interface MoonpiConfig {
   defaultMode: MoonpiMode;
   preserveExternalTools: boolean;
+  /** Whether moonpi installs its custom mode-colored editor. Set to false to preserve
+   *  editor customizations from other extensions (e.g. pi-wierd-statusline). */
+  customEditor: boolean;
   contextFiles: {
     enabled: boolean;
     fileNames: string[];
