@@ -38,8 +38,7 @@ If these **resonate** with you, you might **find** this set of extensions **usef
   It should not be allowed. Period.
 
 - **Prompt cache affinity matters.**  
-  Switching system prompts or tool definitions between phases destroys the provider's prompt cache, forcing a full re-read of the system prompt on every turn.  
-  The phase transition should be invisible to the cache — same prompt, same tool schemas, only runtime behavior changes.
+  Switching system prompts or tool definitions between phases destroys the provider's prompt cache, forcing a full re-read of the system prompt on every turn. The phase transition should be invisible to the cache: same prompt, same tool schemas, only runtime behavior changes.
 
 - **Loops are stupidly simple.**  
   A specification file, a TODO list, and auto-compaction after every phase are more than enough for most use cases.
