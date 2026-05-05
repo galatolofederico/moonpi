@@ -16,26 +16,30 @@ moonpi is built around a few **strong opinions**.
 
 If these **resonate** with you, you might **find** this set of extensions **useful**:
 
-- **Subagents are a waste of tokens.**  
-  Subagents are useless and just a conspiracy to make us use more tokens.  
+- **Subagents are a waste of tokens.**
+  Subagents are useless and just a conspiracy to make us use more tokens.
   *Tin foil hat firmly on.*
 
-- **Plan mode is actually useful — but only if history is retained.**  
-  Plan mode becomes pointless when the model outputs a “plan” and then loses all the context that produced it.  
+- **Plan mode is actually useful - but only if history is retained.**
+  Plan mode becomes pointless when the model outputs a "plan" and then loses all the context that produced it.
   Planning only works when the planning conversation remains part of the execution context.
 
 - **Context is king.**
   Why make the model guess which files matter for a task, wasting tokens and time wandering through the project, when you can inject the relevant files directly into the context?
   Context matters more than models or harnesses, control the context and you control the result.
 
-- **Rejecting reads and writes outside the working directory is good steering.**  
-  Yes, we all know the model can write and execute code, and yes, sandboxing is hard.  
-  But telling the model “hey, you cannot read that” when it reaches outside the project helps steer behavior.  
+- **Rejecting reads and writes outside the working directory is good steering.**
+  Yes, we all know the model can write and execute code, and yes, sandboxing is hard.
+  But telling the model "hey, you cannot read that" when it reaches outside the project helps steer behavior.
   May our benevolent AI overlords accept this humble suggestion.
 
-- **Read before write is mandatory.**  
-  If a model tries to overwrite a file without reading it first, that is an error.  
+- **Read before write is mandatory.**
+  If a model tries to overwrite a file without reading it first, that is an error.
   It should not be allowed. Period.
+
+- **Prompt cache affinity matters.**  
+  Switching system prompts or tool definitions between phases destroys the provider's prompt cache, forcing a full re-read of the system prompt on every turn.  
+  The phase transition should be invisible to the cache — same prompt, same tool schemas, only runtime behavior changes.
 
 - **Loops are stupidly simple.**  
   A specification file, a TODO list, and auto-compaction after every phase are more than enough for most use cases.
@@ -80,7 +84,7 @@ pi install git:github.com/galatolofederico/moonpi@v0.3.3
 moonpi adds a practical workflow layer on top of `pi`, focused on:
 
 - explicit work modes
-- persistent planning context
+- persistent planning context with prompt cache retention across phase transitions
 - TODO-driven execution
 - safer file access behavior
 - pickable project documentation context and `/context` inspection
@@ -111,19 +115,30 @@ Each mode has a different textbox color in the UI, making the current workflow s
 It works in two phases:
 
 1. **Plan phase**
-   - editing tools are disabled
+   - editing tools are disabled at runtime (blocked by guards, not removed from the prompt)
    - the TODO list tool is enabled
    - the model plans the work
    - the model either:
-     - produces a TODO list, then continues to Act Mode
+     - produces a TODO list, then continues to Act phase
      - or calls `end_conversation` when the user is only asking a question
 
 2. **Act phase**
-   - editing tools become available
+   - editing tools become available (guards no longer block them)
    - the conversation history from the Plan phase is retained
    - the model executes the TODO list with full planning context intact
 
-This avoids the “plan then forget everything” problem.
+This avoids the "plan then forget everything" problem.
+
+### Prompt Cache Retention
+
+Auto Mode is specifically designed to preserve the LLM provider's **prompt cache** across the Plan→Act transition. This means:
+
+- **Same system prompt.** Both phases use the identical system prompt text. The phase instructions are embedded in a single `AUTO_MODE_PROMPT` that covers both Plan and Act behavior — the prompt never changes between phases.
+- **Same tool schemas.** All moonpi tools (`read`, `grep`, `find`, `ls`, `bash`, `edit`, `write`, `todo`, `question`, `end_conversation`, `end_phase`) are always present in the tool definitions sent to the provider. Tools are never added or removed between phases.
+- **Runtime enforcement only.** In Plan phase, editing tools (`bash`, `write`, `edit`) are blocked by moonpi's runtime guards — the `tool_call` event handler rejects them with an error message. The tool definitions remain in the prompt. When the phase switches to Act, the guards simply stop blocking those tools.
+- **Stable tool schemas for cache.** Even in Fast mode where `todo` is disabled, its JSON schema is still advertised to the provider. This keeps the tool definition block identical across all modes and phases, maximizing cache hits.
+
+**Why this matters:** providers cache the system prompt and tool definitions across turns. When the prompt or tool list changes, the cache is invalidated and the entire prefix must be re-processed — costing tokens, money, and latency. By keeping the prompt and tool schemas stable, Auto Mode ensures the cache is retained throughout the entire conversation, from Plan through Act and beyond.
 
 ## Project Context Picker
 
@@ -268,7 +283,7 @@ When `cwdOnly` is enabled, you can grant the agent read access to specific direc
 }
 ```
 
-Paths support `~` expansion (resolved to home directory) and relative paths (resolved from cwd). Only **read** access is granted for allowed paths — writes and edits are still restricted to the working directory.
+Paths support `~` expansion (resolved to home directory) and relative paths (resolved from cwd). Only **read** access is granted for allowed paths - writes and edits are still restricted to the working directory.
 
 The setting works in both global (`~/.pi/agent/moonpi.json`) and project-level (`.pi/moonpi.json`) configs.
 
