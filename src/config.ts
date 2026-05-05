@@ -40,7 +40,7 @@ export const DEFAULT_PICKABLE_EXTENSIONS = [
 
 export const DEFAULT_CONFIG: MoonpiConfig = {
   defaultMode: "auto",
-  preserveExternalTools: false,
+  preserveExternalTools: true,
   customEditor: true,
   contextFiles: {
     enabled: true,
