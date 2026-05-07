@@ -105,7 +105,9 @@ export class MoonpiController {
 
   installUi(ctx: ExtensionContext): void {
     installMoonpiHeader(ctx);
-    installMoonpiEditor(ctx, () => this.state.mode);
+    if (this.config.customEditor) {
+      installMoonpiEditor(ctx, () => this.state.mode);
+    }
     this.terminalInputUnsubscribe?.();
     this.terminalInputUnsubscribe = ctx.ui.onTerminalInput((data) => {
       if (ctx.ui.getEditorText().length > 0) return undefined;

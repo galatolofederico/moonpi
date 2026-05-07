@@ -338,7 +338,9 @@ export async function installSynthetic(pi: ExtensionAPI): Promise<void> {
   // and refresh the model list from the live API.
   pi.on("session_start", async (_event, ctx) => {
     const apiKey = await getSyntheticApiKey(ctx);
-    await refreshLiveModels(pi, apiKey, ctx.signal);
+    // Fire-and-forget: don't block session startup on the network request.
+    // Cached/fallback models are already registered, so the provider is usable immediately.
+    refreshLiveModels(pi, apiKey, ctx.signal).catch(() => {});
   });
 
   pi.registerCommand("synthetic:quotas", {

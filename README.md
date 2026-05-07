@@ -188,6 +188,9 @@ Configure `.pi/moonpi.json` (project) or `~/.pi/agent/moonpi.json` (global):
 
 ```json
 {
+  "defaultMode": "auto",
+  "preserveExternalTools": false,
+  "customEditor": true,
   "contextFiles": {
     "enabled": true,
     "fileNames": ["README.md", "SPECS.md", "SPRINT.md"],
@@ -211,9 +214,28 @@ Configure `.pi/moonpi.json` (project) or `~/.pi/agent/moonpi.json` (global):
     "cwdOnly": true,
     "allowedPaths": ["~/.pi/agent"],
     "readBeforeWrite": true
+  },
+  "keybindings": {
+    "cycleNext": "tab",
+    "cyclePrevious": ""
   }
 }
 ```
+
+#### General
+
+| Field | Default | Description |
+| --- | --- | --- |
+| `defaultMode` | `"auto"` | Mode used at session start. One of `"plan"`, `"act"`, `"auto"`, `"fast"` |
+| `preserveExternalTools` | `false` | When `true`, tools registered by other extensions are kept alongside moonpi tools when applying mode tool restrictions |
+| `customEditor` | `true` | When `false`, moonpi skips installing its mode-colored editor, preserving editor customizations from other extensions |
+
+#### Keybindings
+
+| Field | Default | Description |
+| --- | --- | --- |
+| `cycleNext` | `"tab"` | Keybinding to cycle to the next mode when the editor is empty |
+| `cyclePrevious` | `""` (disabled) | Keybinding to cycle to the previous mode when the editor is empty |
 
 #### Context files
 

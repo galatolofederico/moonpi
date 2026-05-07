@@ -40,7 +40,8 @@ export const DEFAULT_PICKABLE_EXTENSIONS = [
 
 export const DEFAULT_CONFIG: MoonpiConfig = {
   defaultMode: "auto",
-  preserveExternalTools: false,
+  preserveExternalTools: true,
+  customEditor: true,
   contextFiles: {
     enabled: true,
     fileNames: ["README.md", "SPECS.md", "SPRINT.md"],
@@ -123,6 +124,7 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
   const next: MoonpiConfig = {
     defaultMode: base.defaultMode,
     preserveExternalTools: base.preserveExternalTools,
+    customEditor: base.customEditor,
     contextFiles: { ...base.contextFiles },
     guards: { ...base.guards },
     keybindings: { ...base.keybindings },
@@ -130,6 +132,7 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
 
   if (isSelectableMode(raw.defaultMode)) next.defaultMode = raw.defaultMode;
   if (typeof raw.preserveExternalTools === "boolean") next.preserveExternalTools = raw.preserveExternalTools;
+  if (typeof raw.customEditor === "boolean") next.customEditor = raw.customEditor;
 
   if (isRecord(raw.contextFiles)) {
     const context = raw.contextFiles;
