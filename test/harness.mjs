@@ -90,6 +90,7 @@ export function createMockExtensionRuntime(cwd, options = {}) {
     setActiveTools: (toolNames) => {
       activeTools = [...toolNames];
     },
+    getActiveTools: () => activeTools,
     appendEntry: (customType, data) => {
       entries.push({ type: "custom", customType, data });
     },
