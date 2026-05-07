@@ -1,6 +1,6 @@
 {
   "name": "moonpi",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Opinionated set of extensions for pi",
   "type": "module",
   "main": "./src/index.ts",
