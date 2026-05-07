@@ -52,10 +52,25 @@ export function createMockExtensionRuntime(cwd, options = {}) {
       };
     },
     getEditorText: () => options.editorText ?? "",
-    select: async (_title, choices) => options.selectResult ?? choices[0],
+    select: async (_title, choices) => {
+      if (Array.isArray(options.selectResults)) {
+        return options.selectResults.shift() ?? choices[0];
+      }
+      return options.selectResult ?? choices[0];
+    },
     editor: async () => options.editorResult ?? "",
-    confirm: async () => options.confirmResult ?? true,
-    input: async () => options.inputResult ?? "",
+    confirm: async () => {
+      if (Array.isArray(options.confirmResults)) {
+        return options.confirmResults.shift() ?? true;
+      }
+      return options.confirmResult ?? true;
+    },
+    input: async () => {
+      if (Array.isArray(options.inputResults)) {
+        return options.inputResults.shift() ?? "";
+      }
+      return options.inputResult ?? "";
+    },
     custom: async (...args) => {
       if (options.customResult !== undefined) return options.customResult;
       if (typeof options.custom === "function") return options.custom(...args);
