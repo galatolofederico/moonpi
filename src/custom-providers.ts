@@ -521,6 +521,127 @@ async function scanModelsCommand(_args: string, ctx: ExtensionCommandContext): P
 }
 
 // =========================================================================
+// Command: /custom-provider:remove-provider
+// =========================================================================
+
+async function removeProviderCommand(_args: string, ctx: ExtensionCommandContext): Promise<void> {
+  const config = readModelsJson();
+  const providerNames = Object.keys(config.providers);
+
+  if (providerNames.length === 0) {
+    ctx.ui.notify(
+      "No custom providers found in models.json.",
+      "warning",
+    );
+    return;
+  }
+
+  // 1. Select provider to remove
+  const selectedProvider = await ctx.ui.select("Select provider to remove", providerNames);
+  if (!selectedProvider) {
+    ctx.ui.notify("Cancelled: no provider selected.", "warning");
+    return;
+  }
+
+  // 2. Confirm deletion
+  const provider = config.providers[selectedProvider]!;
+  const modelCount = provider.models?.length ?? 0;
+  const confirmMessage = modelCount > 0
+    ? `Remove provider "${selectedProvider}" and its ${modelCount} model(s)?`
+    : `Remove provider "${selectedProvider}"?`;
+
+  const confirmed = await ctx.ui.confirm(
+    confirmMessage,
+    `This will update models.json. Run /reload after to refresh pi's model registry.`,
+  );
+  if (!confirmed) {
+    ctx.ui.notify("Cancelled.", "info");
+    return;
+  }
+
+  // 3. Remove provider
+  delete config.providers[selectedProvider];
+  writeModelsJson(config);
+
+  ctx.ui.notify(
+    `Provider "${selectedProvider}" removed from models.json.\n` +
+    `Run /reload to refresh pi's model registry.`,
+    "info",
+  );
+}
+
+// =========================================================================
+// Command: /custom-provider:remove-model
+// =========================================================================
+
+async function removeModelCommand(_args: string, ctx: ExtensionCommandContext): Promise<void> {
+  const config = readModelsJson();
+  const providerNames = Object.keys(config.providers);
+
+  if (providerNames.length === 0) {
+    ctx.ui.notify(
+      "No custom providers found in models.json.",
+      "warning",
+    );
+    return;
+  }
+
+  // 1. Select provider
+  const selectedProvider = await ctx.ui.select("Select provider to remove a model from", providerNames);
+  if (!selectedProvider) {
+    ctx.ui.notify("Cancelled: no provider selected.", "warning");
+    return;
+  }
+
+  const provider = config.providers[selectedProvider]!;
+  const models = provider.models ?? [];
+
+  if (models.length === 0) {
+    ctx.ui.notify(
+      `Provider "${selectedProvider}" has no models.`,
+      "warning",
+    );
+    return;
+  }
+
+  // 2. Select model to remove
+  const modelLabels = models.map((m) => m.name ? `${m.id} (${m.name})` : m.id);
+  const selectedModelLabel = await ctx.ui.select("Select model to remove", modelLabels);
+  if (!selectedModelLabel) {
+    ctx.ui.notify("Cancelled: no model selected.", "warning");
+    return;
+  }
+
+  const selectedIndex = modelLabels.indexOf(selectedModelLabel);
+  if (selectedIndex === -1) {
+    ctx.ui.notify("Cancelled: could not resolve model.", "warning");
+    return;
+  }
+
+  const modelToRemove = models[selectedIndex]!;
+
+  // 3. Confirm
+  const confirmed = await ctx.ui.confirm(
+    `Remove model "${modelToRemove.id}" from provider "${selectedProvider}"?`,
+    "This will update models.json. Run /reload after to refresh pi's model registry.",
+  );
+  if (!confirmed) {
+    ctx.ui.notify("Cancelled.", "info");
+    return;
+  }
+
+  // 4. Remove model
+  provider.models = models.filter((_, i) => i !== selectedIndex);
+  writeModelsJson(config);
+
+  ctx.ui.notify(
+    `Model "${modelToRemove.id}" removed from provider "${selectedProvider}" in models.json.\n` +
+    `Run /reload to refresh pi's model registry.`,
+    "info",
+  );
+}
+
+// =========================================================================
 // Install all custom-provider commands
 // =========================================================================
 
@@ -538,5 +659,15 @@ export function installCustomProviderCommands(pi: ExtensionAPI): void {
   pi.registerCommand("custom-provider:scan-models", {
     description: "Scan an OpenAI-compatible provider endpoint for available models and add them to models.json",
     handler: scanModelsCommand,
+  });
+
+  pi.registerCommand("custom-provider:remove-provider", {
+    description: "Remove a custom provider and all its models from models.json",
+    handler: removeProviderCommand,
+  });
+
+  pi.registerCommand("custom-provider:remove-model", {
+    description: "Remove a model from an existing custom provider in models.json",
+    handler: removeModelCommand,
   });
 }
