@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { formatConfig } from "./config.js";
 import { installContextFiles } from "./context-files.js";
+import { installCustomProviderCommands } from "./custom-providers.js";
 import { installGuards } from "./guards.js";
 import { MoonpiController } from "./modes.js";
 import { formatTodoList } from "./state.js";
@@ -22,6 +23,7 @@ export default async function moonpi(pi: ExtensionAPI): Promise<void> {
   installGuards(pi, controller);
   installContextFiles(pi, controller);
   installSprintWorkflow(pi, controller);
+  installCustomProviderCommands(pi);
 
   pi.registerCommand("moonpi:mode", {
     description: "Switch moonpi mode: plan, act, auto, fast",
