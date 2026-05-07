@@ -182,7 +182,150 @@ Example output:
 
 At startup, a notification shows which files are currently selected for injection.
 
-### Configuration
+## Custom Providers
+
+moonpi includes the support from some custom providers, and provides slash commands to manage custom providers in `~/.pi/agent/models.json`.
+
+
+### Synthetic Provider
+
+Moonpi registers Synthetic as the `synthetic` provider using the OpenAI-compatible endpoint.
+
+Configure credentials with either:
+
+```bash
+export SYNTHETIC_API_KEY=...
+```
+
+or run:
+
+```text
+/login
+```
+
+Use `/model` to select a `synthetic` model. Use `/synthetic:quotas` to show your weekly token and rolling 5h usage quotas:
+
+![Synthetic quotas output](assets/screenshots/moonpi-syn.png)
+
+
+### Managing Custom Providers
+
+moonpi provides five slash commands to manage custom providers in `~/.pi/agent/models.json`:
+
+#### `/custom-provider:add-provider`
+
+Interactive wizard that adds a new custom provider. Prompts for:
+
+1. **Provider name** — a unique identifier (e.g. `my-vllm`)
+2. **API type** — select from all supported APIs (`openai-completions`, `anthropic-messages`, `google-generative-ai`, etc.)
+3. **Base URL** — the API endpoint (sensible defaults per API type)
+4. **API key** — your API key or an environment variable name
+
+Example `models.json` result:
+
+```json
+{
+  "providers": {
+    "my-vllm": {
+      "baseUrl": "http://127.0.0.1:8000/v1",
+      "api": "openai-completions",
+      "apiKey": "none",
+      "models": []
+    }
+  }
+}
+```
+
+#### `/custom-provider:add-model`
+
+Adds a model to an existing custom provider. Prompts for:
+
+1. **Provider** — select from existing custom providers
+2. **Model ID** — the model identifier (e.g. `Qwen/Qwen3-27B`)
+3. **Display name** — optional human-readable name
+4. **Advanced options** — optional configuration for reasoning, context window, max tokens, image input, and API type override
+
+#### `/custom-provider:scan-models`
+
+Auto-detects models from an OpenAI-compatible provider endpoint. Works with providers using `openai-completions` or `openai-responses` API.
+
+1. **Select provider** — choose from OpenAI-compatible custom providers
+2. **Scan** — fetches `/v1/models` from the provider's base URL
+3. **Select models** — checkbox UI shows all discovered models; already-added models are greyed out
+   - `Space` to toggle individual models
+   - `a`/`A` to select/deselect all
+   - `Enter` to confirm (adds all new models if none selected)
+4. Auto-fills `contextWindow` from `max_model_len` when available
+
+#### `/custom-provider:remove-provider`
+
+Removes a custom provider and all its models from `models.json`. Asks for confirmation before deleting.
+
+#### `/custom-provider:remove-model`
+
+Removes a single model from a custom provider. Prompts for the provider, then the model to remove, with confirmation.
+
+After any change, run `/reload` to refresh pi's model registry and make new models available in `/model`.
+
+## Moonpi loop
+
+moonpi includes sprint-oriented loop for larger projects.
+
+### `/sprint:init`
+
+Creates a new sprint for a larger project.
+
+This command asks **one question**: the sprint objective.
+
+It then delegates SPRINT.md and TASKS.md creation to the agent, which writes:
+
+```txt
+./sprints/<sprint_number>/SPRINT.md
+./sprints/<sprint_number>/TASKS.md
+```
+
+The sprint is divided into phases.
+
+Each phase includes tasks and verification steps that define when the phase is complete.
+
+The goal is to turn a vague big project into a concrete, phased execution plan.
+
+### `/sprint:loop`
+
+Runs the latest sprint phase-by-phase. Automatically picks the most recent sprint.
+
+The loop works like this:
+
+1. complete one phase
+2. mark completed tasks in:
+
+```txt
+./sprints/<sprint_number>/TASKS.md
+```
+
+3. compact the conversation/context
+4. proceed to the next phase
+5. repeat until the sprint is complete
+
+The model signals the end of a phase by calling a special `end_phase` tool.
+
+This keeps long-running projects simple, resumable, and grounded in actual files.
+
+### Does it work?
+
+Watch a drastically sped-up video of `Qwen/Qwen3.6-27B` working unattended for over an hour on this sprint prompt:
+
+```text
+create WebOS a fully functional web-based operating system with apps, games and everything
+```
+
+https://github.com/user-attachments/assets/92670a55-a3c4-4c31-a4a2-0afc449f0137
+
+
+And judge the result yourself [here](https://qwen36-27b-moonpi-webos.netlify.app/).
+
+
+## Configuration
 
 Configure `.pi/moonpi.json` (project) or `~/.pi/agent/moonpi.json` (global):
 
@@ -315,89 +458,6 @@ moonpi requires the model to read a file before writing to it.
 If the model tries to write to a file without reading it first, the write tool returns an error.
 
 This prevents careless overwrites and forces the agent to inspect the current state of a file before modifying it.
-
-## Moonpi loop
-
-moonpi includes sprint-oriented loop for larger projects.
-
-### `/sprint:init`
-
-Creates a new sprint for a larger project.
-
-This command asks **one question**: the sprint objective.
-
-It then delegates SPRINT.md and TASKS.md creation to the agent, which writes:
-
-```txt
-./sprints/<sprint_number>/SPRINT.md
-./sprints/<sprint_number>/TASKS.md
-```
-
-The sprint is divided into phases.
-
-Each phase includes tasks and verification steps that define when the phase is complete.
-
-The goal is to turn a vague big project into a concrete, phased execution plan.
-
-### `/sprint:loop`
-
-Runs the latest sprint phase-by-phase. Automatically picks the most recent sprint.
-
-The loop works like this:
-
-1. complete one phase
-2. mark completed tasks in:
-
-```txt
-./sprints/<sprint_number>/TASKS.md
-```
-
-3. compact the conversation/context
-4. proceed to the next phase
-5. repeat until the sprint is complete
-
-The model signals the end of a phase by calling a special `end_phase` tool.
-
-This keeps long-running projects simple, resumable, and grounded in actual files.
-
-### Does it work?
-
-Watch a drastically sped-up video of `Qwen/Qwen3.6-27B` working unattended for over an hour on this sprint prompt:
-
-```text
-create WebOS a fully functional web-based operating system with apps, games and everything
-```
-
-https://github.com/user-attachments/assets/92670a55-a3c4-4c31-a4a2-0afc449f0137
-
-
-And judge the result yourself [here](https://qwen36-27b-moonpi-webos.netlify.app/).
-
-## Custom Providers
-
-moonpi includes the support from some custom providers.
-
-
-### Synthetic Provider
-
-Moonpi registers Synthetic as the `synthetic` provider using the OpenAI-compatible endpoint.
-
-Configure credentials with either:
-
-```bash
-export SYNTHETIC_API_KEY=...
-```
-
-or run:
-
-```text
-/login
-```
-
-Use `/model` to select a `synthetic` model. Use `/synthetic:quotas` to show your weekly token and rolling 5h usage quotas:
-
-![Synthetic quotas output](assets/screenshots/moonpi-syn.png)
-
 
 ## Why moonpi?
 
