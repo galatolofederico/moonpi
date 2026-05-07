@@ -18,7 +18,7 @@ function textOf(result) {
 test("registers the expected commands, tools, UI, status, and default active tool set", async () => {
   const harness = await createMoonpiHarness({ config: defaultConfig });
   try {
-    for (const command of ["moonpi:mode", "moonpi:settings", "pick", "context", "sprint:init", "sprint:loop"]) {
+    for (const command of ["moonpi:mode", "moonpi:settings", "pick", "context", "sprint:init", "sprint:loop", "custom-provider:add-provider", "custom-provider:add-model", "custom-provider:scan-models", "custom-provider:remove-provider", "custom-provider:remove-model"]) {
       assert.ok(harness.commands.has(command), `${command} command should be registered`);
     }
     assert.deepEqual([...harness.tools.keys()].sort(), ["end_conversation", "end_phase", "question", "todo"].sort());
