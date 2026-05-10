@@ -18,7 +18,7 @@ function textOf(result) {
 test("registers the expected commands, tools, UI, status, and default active tool set", async () => {
   const harness = await createMoonpiHarness({ config: defaultConfig });
   try {
-    for (const command of ["moonpi:mode", "moonpi:settings", "pick", "context", "sprint:init", "sprint:loop", "custom-provider:add-provider", "custom-provider:add-model", "custom-provider:scan-models", "custom-provider:remove-provider", "custom-provider:remove-model"]) {
+    for (const command of ["moonpi:mode", "moonpi:settings", "pick", "context", "context:clear", "sprint:init", "sprint:loop", "custom-provider:add-provider", "custom-provider:add-model", "custom-provider:scan-models", "custom-provider:remove-provider", "custom-provider:remove-model"]) {
       assert.ok(harness.commands.has(command), `${command} command should be registered`);
     }
     assert.deepEqual([...harness.tools.keys()].sort(), ["end_conversation", "end_phase", "question", "todo"].sort());
@@ -295,6 +295,55 @@ test("/context shows selected files and their source", async () => {
     assert.match(emptyHarness.notifications.at(-1).message, /No default context files found/);
   } finally {
     await emptyHarness.cleanup();
+  }
+});
+
+test("/context:clear deselects all context files", async () => {
+  // Clear auto-discovered files
+  const autoHarness = await createMoonpiHarness({
+    config: {
+      contextFiles: { enabled: true, fileNames: ["README.md"], maxTotalBytes: 10_000, ignoreDirs: [] },
+      guards: { cwdOnly: false, readBeforeWrite: false },
+    },
+  });
+  try {
+    await writeFile(join(autoHarness.cwd, "README.md"), "readme");
+    let prompt = await autoHarness.buildInjectedPrompt("BASE");
+    assert.match(prompt, /<context-file path="README.md">/);
+
+    await autoHarness.runCommand("context:clear", "");
+    assert.match(autoHarness.notifications.at(-1).message, /Cleared context file selection/);
+    assert.match(autoHarness.notifications.at(-1).message, /1 file\(s\) deselected/);
+
+    prompt = await autoHarness.buildInjectedPrompt("BASE");
+    assert.doesNotMatch(prompt, /<context-file path="README.md">/);
+  } finally {
+    await autoHarness.cleanup();
+  }
+
+  // Clear manually selected files
+  const pickHarness = await createMoonpiHarness({
+    config: {
+      contextFiles: { enabled: true, fileNames: ["README.md"], maxTotalBytes: 10_000, ignoreDirs: [] },
+      guards: { cwdOnly: false, readBeforeWrite: false },
+    },
+    runtimeOptions: { customResult: { confirmed: true, selectedPaths: ["README.md"] } },
+  });
+  try {
+    await writeFile(join(pickHarness.cwd, "README.md"), "readme");
+    await pickHarness.runCommand("pick", "");
+    await pickHarness.runCommand("context:clear", "");
+    assert.match(pickHarness.notifications.at(-1).message, /Cleared context file selection/);
+    assert.match(pickHarness.notifications.at(-1).message, /1 file\(s\) deselected/);
+
+    let prompt = await pickHarness.buildInjectedPrompt("BASE");
+    assert.doesNotMatch(prompt, /<context-file path="README.md">/);
+
+    // Verify context after clear
+    await pickHarness.runCommand("context", "");
+    assert.match(pickHarness.notifications.at(-1).message, /No files selected for prompt injection/);
+  } finally {
+    await pickHarness.cleanup();
   }
 });
 

@@ -484,6 +484,21 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
     },
   });
 
+  pi.registerCommand("context:clear", {
+    description: "Deselect all context files (clear /pick and auto-discovered files)",
+    handler: async (_args, ctx) => {
+      if (!controller.config.contextFiles.enabled) {
+        ctx.ui.notify("moonpi context file injection is disabled in /moonpi:settings.", "warning");
+        return;
+      }
+
+      const previousCount = getEffectiveSelectedContextFilePaths(ctx.cwd, controller).length;
+      controller.state.selectedContextFilePaths = [];
+      controller.persist();
+      ctx.ui.notify(`Cleared context file selection (${previousCount} file(s) deselected). Use /pick to select files.`, "info");
+    },
+  });
+
   pi.on("session_start", async (_event, ctx) => {
     controller.restoreFromSession(ctx);
     const discovery = controller.state.selectedContextFilePaths === undefined ? findDefaultContextFilePaths(ctx.cwd, controller) : undefined;
