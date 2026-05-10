@@ -19,6 +19,7 @@ const STABLE_MOONPI_TOOLS = [
   "question",
   "end_conversation",
   "end_phase",
+  "web_search",
 ];
 const MOONPI_TOOL_NAMES = new Set(STABLE_MOONPI_TOOLS);
 type Direction = "next" | "previous";
@@ -40,6 +41,7 @@ function latestSnapshot(entries: SessionEntry[]): MoonpiSnapshot | undefined {
 export class MoonpiController {
   readonly state = new MoonpiState();
   config: MoonpiConfig = loadMoonpiConfig(process.cwd());
+  syntheticAuthenticated = false;
   private terminalInputUnsubscribe: (() => void) | undefined;
 
   constructor(private readonly pi: ExtensionAPI) {}
@@ -144,9 +146,14 @@ export class MoonpiController {
   }
 
   getToolsForCurrentMode(): string[] {
-    if (!this.config.preserveExternalTools) return STABLE_MOONPI_TOOLS;
-    const externalTools = this.pi.getActiveTools().filter((toolName) => !MOONPI_TOOL_NAMES.has(toolName));
-    return [...new Set([...STABLE_MOONPI_TOOLS, ...externalTools])];
+    let tools = this.config.preserveExternalTools
+      ? [...new Set([...STABLE_MOONPI_TOOLS, ...this.pi.getActiveTools().filter((toolName) => !MOONPI_TOOL_NAMES.has(toolName))])]
+      : [...STABLE_MOONPI_TOOLS];
+
+    if (!this.syntheticAuthenticated) {
+      tools = tools.filter((t) => t !== "web_search");
+    }
+    return tools;
   }
 
   buildModePrompt(): string {

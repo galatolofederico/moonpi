@@ -1,4 +1,7 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext, ProviderModelConfig } from "@mariozechner/pi-coding-agent";
+import { Text } from "@mariozechner/pi-tui";
+import { Type, type Static } from "typebox";
+import type { MoonpiController } from "./modes.js";
 import { SYNTHETIC_MODELS_FALLBACK, mergeWithFallback, parseSyntheticModels, readCachedModels, writeCachedModels } from "./synthetic-models.js";
 
 const SYNTHETIC_PROVIDER = "synthetic";
@@ -6,6 +9,7 @@ const SYNTHETIC_API_KEY_ENV = "SYNTHETIC_API_KEY";
 const SYNTHETIC_OPENAI_BASE_URL = "https://api.synthetic.new/openai/v1";
 const SYNTHETIC_MODELS_URL = "https://api.synthetic.new/openai/v1/models";
 const SYNTHETIC_QUOTAS_URL = "https://api.synthetic.new/v2/quotas";
+const SYNTHETIC_SEARCH_URL = "https://api.synthetic.new/v2/search";
 const FETCH_TIMEOUT_MS = 15_000;
 
 type QuotasErrorKind = "cancelled" | "timeout" | "config" | "http" | "network";
@@ -238,6 +242,155 @@ async function getSyntheticApiKey(ctx: ExtensionCommandContext | ExtensionContex
   return storedKey ?? process.env[SYNTHETIC_API_KEY_ENV] ?? "";
 }
 
+// =========================================================================
+// Search API
+// =========================================================================
+
+interface SearchResult {
+  url: string;
+  title: string;
+  text: string;
+  published?: string;
+}
+
+interface SearchResponse {
+  results: SearchResult[];
+}
+
+const SearchParamsSchema = Type.Object({
+  query: Type.String({ description: "Search query" }),
+});
+
+type SearchParams = Static<typeof SearchParamsSchema>;
+
+interface SearchDetails {
+  query: string;
+  resultCount: number;
+}
+
+function formatSearchResults(query: string, results: SearchResult[]): string {
+  if (results.length === 0) {
+    return `No results found for "${query}".`;
+  }
+
+  const lines: string[] = [`Found ${results.length} result${results.length === 1 ? "" : "s"} for "${query}":\n`];
+
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i]!;
+    const num = i + 1;
+    lines.push(`${num}. **${result.title}**`);
+    lines.push(`   ${result.url}`);
+    if (result.published) {
+      try {
+        const date = new Date(result.published);
+        if (!Number.isNaN(date.getTime())) {
+          lines.push(`   Published: ${date.toISOString().split("T")[0]}`);
+        }
+      } catch {
+        // Skip unparseable dates
+      }
+    }
+    lines.push(`   ${result.text}`);
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+function registerSearchTool(pi: ExtensionAPI, controller: MoonpiController): void {
+  pi.registerTool<typeof SearchParamsSchema, SearchDetails>({
+    name: "web_search",
+    label: "web search",
+    description:
+      "Search the web using the Synthetic search API. Returns a list of results with title, URL, and text excerpt. Requires Synthetic authentication (set SYNTHETIC_API_KEY or run /login synthetic).",
+    promptSnippet: "Search the web for information",
+    promptGuidelines: [
+      "Use web_search when you need to find information on the web that you don't already know.",
+      "Prefer web_search over guessing URLs or making assumptions about external documentation.",
+    ],
+    parameters: SearchParamsSchema,
+    async execute(_toolCallId, params: SearchParams, signal, _onUpdate, ctx) {
+      const apiKey = await getSyntheticApiKey(ctx);
+      if (!apiKey) {
+        return {
+          content: [{ type: "text", text: "Error: web_search requires a Synthetic API key. Set SYNTHETIC_API_KEY or run /login synthetic." }],
+          details: { query: params.query, resultCount: 0 } satisfies SearchDetails,
+        };
+      }
+
+      const signals = [AbortSignal.timeout(FETCH_TIMEOUT_MS)];
+      if (signal) signals.push(signal);
+      const combinedSignal = AbortSignal.any(signals);
+
+      try {
+        const response = await fetch(SYNTHETIC_SEARCH_URL, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+            "X-Title": "moonpi",
+          },
+          body: JSON.stringify({ query: params.query }),
+          signal: combinedSignal,
+        });
+
+        if (!response.ok) {
+          let message = response.statusText;
+          const body = await response.text();
+          if (body.length > 0) {
+            try {
+              const parsed = JSON.parse(body) as { error?: unknown; message?: unknown };
+              if (typeof parsed.error === "string") message = parsed.error;
+              else if (typeof parsed.message === "string") message = parsed.message;
+              else message = body;
+            } catch {
+              message = body;
+            }
+          }
+          return {
+            content: [{ type: "text", text: `Error: Synthetic search API returned ${response.status}: ${message}` }],
+            details: { query: params.query, resultCount: 0 } satisfies SearchDetails,
+          };
+        }
+
+        const data = (await response.json()) as SearchResponse;
+        const results = data.results ?? [];
+        return {
+          content: [{ type: "text", text: formatSearchResults(params.query, results) }],
+          details: { query: params.query, resultCount: results.length } satisfies SearchDetails,
+        };
+      } catch (error: unknown) {
+        const aborted = combinedSignal.aborted || (error instanceof DOMException && error.name === "AbortError");
+        if (aborted) {
+          if (isTimeoutReason(combinedSignal.reason)) {
+            return {
+              content: [{ type: "text", text: "Error: Synthetic search request timed out." }],
+              details: { query: params.query, resultCount: 0 } satisfies SearchDetails,
+            };
+          }
+          return {
+            content: [{ type: "text", text: "Error: Synthetic search request was cancelled." }],
+            details: { query: params.query, resultCount: 0 } satisfies SearchDetails,
+          };
+        }
+
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return {
+          content: [{ type: "text", text: `Error: Synthetic search failed: ${message}` }],
+          details: { query: params.query, resultCount: 0 } satisfies SearchDetails,
+        };
+      }
+    },
+    renderResult(result, _options, theme) {
+      const text = result.content
+        .filter((item) => item.type === "text")
+        .map((item) => item.text)
+        .join("\n");
+      return new Text(theme.fg("toolOutput", text), 0, 0);
+    },
+  });
+}
+
 async function fetchSyntheticModels(apiKey: string, signal?: AbortSignal): Promise<ProviderModelConfig[] | null> {
   if (!apiKey) return null;
 
@@ -309,7 +462,10 @@ async function refreshLiveModels(pi: ExtensionAPI, apiKey: string, signal?: Abor
   return fetchedModels;
 }
 
-export async function installSynthetic(pi: ExtensionAPI): Promise<void> {
+export async function installSynthetic(pi: ExtensionAPI, controller: MoonpiController): Promise<void> {
+  // Register web_search tool (synchronous, won't fail)
+  registerSearchTool(pi, controller);
+
   // Fast path: read cached models from disk (synchronous, no network).
   // This ensures models are available immediately at init time, which is
   // critical for model restoration on session resume. Without this, models
@@ -327,6 +483,7 @@ export async function installSynthetic(pi: ExtensionAPI): Promise<void> {
   // resolved later in the session_start handler.
   const apiKey = process.env[SYNTHETIC_API_KEY_ENV] ?? "";
   if (apiKey) {
+    controller.syntheticAuthenticated = true;
     // Fire and forget – we already registered with cached/fallback models,
     // so startup isn't blocked on the network request.
     refreshLiveModels(pi, apiKey).catch(() => {
@@ -338,6 +495,11 @@ export async function installSynthetic(pi: ExtensionAPI): Promise<void> {
   // and refresh the model list from the live API.
   pi.on("session_start", async (_event, ctx) => {
     const apiKey = await getSyntheticApiKey(ctx);
+    const wasAuthenticated = controller.syntheticAuthenticated;
+    controller.syntheticAuthenticated = !!apiKey;
+    if (controller.syntheticAuthenticated !== wasAuthenticated) {
+      controller.applyMode(ctx);
+    }
     // Fire-and-forget: don't block session startup on the network request.
     // Cached/fallback models are already registered, so the provider is usable immediately.
     refreshLiveModels(pi, apiKey, ctx.signal).catch(() => {});

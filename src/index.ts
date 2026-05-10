@@ -140,7 +140,7 @@ ${todoList}`);
 
   // Synthetic is optional; keep core Moonpi mode hooks installed even if provider setup fails.
   try {
-    await installSynthetic(pi);
+    await installSynthetic(pi, controller);
   } catch {
     // Ignore optional provider setup failures.
   }

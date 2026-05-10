@@ -61,6 +61,13 @@ function shouldBlockInPlanPhase(toolName: string): boolean {
 
 export function installGuards(pi: ExtensionAPI, controller: MoonpiController): void {
   pi.on("tool_call", async (event, ctx) => {
+    if (event.toolName === "web_search" && !controller.syntheticAuthenticated) {
+      return {
+        block: true,
+        reason: "moonpi blocked web_search: no Synthetic API key configured. Set SYNTHETIC_API_KEY or run /login synthetic.",
+      };
+    }
+
     if (controller.isPlanPhase() && shouldBlockInPlanPhase(event.toolName)) {
       const allowedTools = controller.isQuestionAllowed() ? "read, grep, find, ls, todo, or question" : "read, grep, find, ls, or todo";
       return {
