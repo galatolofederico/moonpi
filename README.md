@@ -182,6 +182,16 @@ Example output:
 
 At startup, a notification shows which files are currently selected for injection.
 
+### `/context:clear`
+
+Deselects all currently active context files (both `/pick`-selected and auto-discovered). After clearing, no files are injected into the prompt until you run `/pick` again.
+
+Example output:
+
+```
+Cleared context file selection (3 file(s) deselected). Use /pick to select files.
+```
+
 ## Custom Providers
 
 moonpi includes the support from some custom providers, and provides slash commands to manage custom providers in `~/.pi/agent/models.json`.
