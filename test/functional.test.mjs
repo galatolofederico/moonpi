@@ -21,7 +21,7 @@ test("registers the expected commands, tools, UI, status, and default active too
     for (const command of ["moonpi:mode", "moonpi:settings", "pick", "context", "sprint:init", "sprint:loop", "custom-provider:add-provider", "custom-provider:add-model", "custom-provider:scan-models", "custom-provider:remove-provider", "custom-provider:remove-model"]) {
       assert.ok(harness.commands.has(command), `${command} command should be registered`);
     }
-    assert.deepEqual([...harness.tools.keys()].sort(), ["end_conversation", "end_phase", "question", "todo", "web_search"].sort());
+    assert.deepEqual([...harness.tools.keys()].sort(), ["end_conversation", "end_phase", "question", "todo"].sort());
     assert.ok(harness.headerFactory, "startup installs a custom header");
     assert.ok(harness.editorFactory, "startup installs a custom editor");
     assert.ok(harness.terminalInputHandler, "startup installs a terminal input handler");

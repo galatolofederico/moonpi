@@ -19,7 +19,6 @@ const STABLE_MOONPI_TOOLS = [
   "question",
   "end_conversation",
   "end_phase",
-  "web_search",
 ];
 const MOONPI_TOOL_NAMES = new Set(STABLE_MOONPI_TOOLS);
 type Direction = "next" | "previous";
@@ -150,8 +149,8 @@ export class MoonpiController {
       ? [...new Set([...STABLE_MOONPI_TOOLS, ...this.pi.getActiveTools().filter((toolName) => !MOONPI_TOOL_NAMES.has(toolName))])]
       : [...STABLE_MOONPI_TOOLS];
 
-    if (!this.syntheticAuthenticated) {
-      tools = tools.filter((t) => t !== "web_search");
+    if (this.syntheticAuthenticated) {
+      tools.push("web_search");
     }
     return tools;
   }

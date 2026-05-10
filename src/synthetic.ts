@@ -297,12 +297,12 @@ function formatSearchResults(query: string, results: SearchResult[]): string {
   return lines.join("\n");
 }
 
-function registerSearchTool(pi: ExtensionAPI, controller: MoonpiController): void {
+function registerSearchTool(pi: ExtensionAPI): void {
   pi.registerTool<typeof SearchParamsSchema, SearchDetails>({
     name: "web_search",
     label: "web search",
     description:
-      "Search the web using the Synthetic search API. Returns a list of results with title, URL, and text excerpt. Requires Synthetic authentication (set SYNTHETIC_API_KEY or run /login synthetic).",
+      "Search the web using the Synthetic search API. Returns a list of results with title, URL, and text excerpt.",
     promptSnippet: "Search the web for information",
     promptGuidelines: [
       "Use web_search when you need to find information on the web that you don't already know.",
@@ -313,7 +313,7 @@ function registerSearchTool(pi: ExtensionAPI, controller: MoonpiController): voi
       const apiKey = await getSyntheticApiKey(ctx);
       if (!apiKey) {
         return {
-          content: [{ type: "text", text: "Error: web_search requires a Synthetic API key. Set SYNTHETIC_API_KEY or run /login synthetic." }],
+          content: [{ type: "text", text: "Error: Synthetic API key not available. Please re-authenticate with /login synthetic." }],
           details: { query: params.query, resultCount: 0 } satisfies SearchDetails,
         };
       }
@@ -463,8 +463,13 @@ async function refreshLiveModels(pi: ExtensionAPI, apiKey: string, signal?: Abor
 }
 
 export async function installSynthetic(pi: ExtensionAPI, controller: MoonpiController): Promise<void> {
-  // Register web_search tool (synchronous, won't fail)
-  registerSearchTool(pi, controller);
+  let searchToolRegistered = false;
+
+  function ensureSearchToolRegistered(): void {
+    if (searchToolRegistered) return;
+    searchToolRegistered = true;
+    registerSearchTool(pi);
+  }
 
   // Fast path: read cached models from disk (synchronous, no network).
   // This ensures models are available immediately at init time, which is
@@ -484,6 +489,7 @@ export async function installSynthetic(pi: ExtensionAPI, controller: MoonpiContr
   const apiKey = process.env[SYNTHETIC_API_KEY_ENV] ?? "";
   if (apiKey) {
     controller.syntheticAuthenticated = true;
+    ensureSearchToolRegistered();
     // Fire and forget – we already registered with cached/fallback models,
     // so startup isn't blocked on the network request.
     refreshLiveModels(pi, apiKey).catch(() => {
@@ -497,6 +503,9 @@ export async function installSynthetic(pi: ExtensionAPI, controller: MoonpiContr
     const apiKey = await getSyntheticApiKey(ctx);
     const wasAuthenticated = controller.syntheticAuthenticated;
     controller.syntheticAuthenticated = !!apiKey;
+    if (controller.syntheticAuthenticated && !searchToolRegistered) {
+      ensureSearchToolRegistered();
+    }
     if (controller.syntheticAuthenticated !== wasAuthenticated) {
       controller.applyMode(ctx);
     }
