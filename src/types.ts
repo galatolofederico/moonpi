@@ -35,6 +35,12 @@ export interface MoonpiConfig {
   /** Whether moonpi installs its custom mode-colored editor. Set to false to preserve
    *  editor customizations from other extensions (e.g. pi-wierd-statusline). */
   customEditor: boolean;
+  synthetic: {
+    search: {
+      /** Whether the web_search tool is available when logged in with Synthetic. */
+      enabled: boolean;
+    };
+  };
   contextFiles: {
     enabled: boolean;
     fileNames: string[];

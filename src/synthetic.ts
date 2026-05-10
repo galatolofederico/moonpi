@@ -464,9 +464,10 @@ async function refreshLiveModels(pi: ExtensionAPI, apiKey: string, signal?: Abor
 
 export async function installSynthetic(pi: ExtensionAPI, controller: MoonpiController): Promise<void> {
   let searchToolRegistered = false;
+  const searchEnabled = () => controller.config.synthetic.search.enabled;
 
   function ensureSearchToolRegistered(): void {
-    if (searchToolRegistered) return;
+    if (searchToolRegistered || !searchEnabled()) return;
     searchToolRegistered = true;
     registerSearchTool(pi);
   }

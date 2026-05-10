@@ -42,6 +42,11 @@ export const DEFAULT_CONFIG: MoonpiConfig = {
   defaultMode: "auto",
   preserveExternalTools: true,
   customEditor: true,
+  synthetic: {
+    search: {
+      enabled: true,
+    },
+  },
   contextFiles: {
     enabled: true,
     fileNames: ["README.md", "SPECS.md", "SPRINT.md"],
@@ -125,6 +130,7 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
     defaultMode: base.defaultMode,
     preserveExternalTools: base.preserveExternalTools,
     customEditor: base.customEditor,
+    synthetic: { ...base.synthetic },
     contextFiles: { ...base.contextFiles },
     guards: { ...base.guards },
     keybindings: { ...base.keybindings },
@@ -133,6 +139,14 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
   if (isSelectableMode(raw.defaultMode)) next.defaultMode = raw.defaultMode;
   if (typeof raw.preserveExternalTools === "boolean") next.preserveExternalTools = raw.preserveExternalTools;
   if (typeof raw.customEditor === "boolean") next.customEditor = raw.customEditor;
+
+  if (isRecord(raw.synthetic)) {
+    if (isRecord(raw.synthetic.search)) {
+      if (typeof raw.synthetic.search.enabled === "boolean") {
+        next.synthetic.search.enabled = raw.synthetic.search.enabled;
+      }
+    }
+  }
 
   if (isRecord(raw.contextFiles)) {
     const context = raw.contextFiles;
