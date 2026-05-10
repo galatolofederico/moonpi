@@ -207,6 +207,23 @@ Use `/model` to select a `synthetic` model. Use `/synthetic:quotas` to show your
 
 ![Synthetic quotas output](assets/screenshots/moonpi-syn.png)
 
+#### Web Search
+
+When authenticated with Synthetic, moonpi makes a `web_search` tool available to the agent. This tool uses the [Synthetic search API](https://docs.synthetic.new) to perform zero-data-retention web searches and return results with title, URL, published date, and text excerpt.
+
+The tool is **only visible to the LLM when logged in with Synthetic** — it is not registered at all when no API key is configured, so the model never sees it or knows it exists.
+
+To disable the search tool even when logged in, set `synthetic.search.enabled` to `false` in your config:
+
+```json
+{
+  "synthetic": {
+    "search": {
+      "enabled": false
+    }
+  }
+}
+```
 
 ### Managing Custom Providers
 
@@ -334,6 +351,11 @@ Configure `.pi/moonpi.json` (project) or `~/.pi/agent/moonpi.json` (global):
   "defaultMode": "auto",
   "preserveExternalTools": false,
   "customEditor": true,
+  "synthetic": {
+    "search": {
+      "enabled": true
+    }
+  },
   "contextFiles": {
     "enabled": true,
     "fileNames": ["README.md", "SPECS.md", "SPRINT.md"],
@@ -372,6 +394,12 @@ Configure `.pi/moonpi.json` (project) or `~/.pi/agent/moonpi.json` (global):
 | `defaultMode` | `"auto"` | Mode used at session start. One of `"plan"`, `"act"`, `"auto"`, `"fast"` |
 | `preserveExternalTools` | `false` | When `true`, tools registered by other extensions are kept alongside moonpi tools when applying mode tool restrictions |
 | `customEditor` | `true` | When `false`, moonpi skips installing its mode-colored editor, preserving editor customizations from other extensions |
+
+#### Synthetic
+
+| Field | Default | Description |
+| --- | --- | --- |
+| `synthetic.search.enabled` | `true` | When `false`, the `web_search` tool is not registered even if logged in with Synthetic |
 
 #### Keybindings
 
