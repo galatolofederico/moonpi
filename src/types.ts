@@ -41,6 +41,10 @@ export interface MoonpiConfig {
       enabled: boolean;
     };
   };
+  wafer: {
+    /** Whether the Wafer provider is registered at startup. */
+    enabled: boolean;
+  };
   contextFiles: {
     enabled: boolean;
     fileNames: string[];

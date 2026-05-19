@@ -47,6 +47,9 @@ export const DEFAULT_CONFIG: MoonpiConfig = {
       enabled: true,
     },
   },
+  wafer: {
+    enabled: true,
+  },
   contextFiles: {
     enabled: true,
     fileNames: ["README.md", "SPECS.md", "SPRINT.md"],
@@ -131,6 +134,7 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
     preserveExternalTools: base.preserveExternalTools,
     customEditor: base.customEditor,
     synthetic: { ...base.synthetic },
+    wafer: { ...base.wafer },
     contextFiles: { ...base.contextFiles },
     guards: { ...base.guards },
     keybindings: { ...base.keybindings },
@@ -145,6 +149,12 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
       if (typeof raw.synthetic.search.enabled === "boolean") {
         next.synthetic.search.enabled = raw.synthetic.search.enabled;
       }
+    }
+  }
+
+  if (isRecord(raw.wafer)) {
+    if (typeof raw.wafer.enabled === "boolean") {
+      next.wafer.enabled = raw.wafer.enabled;
     }
   }
 

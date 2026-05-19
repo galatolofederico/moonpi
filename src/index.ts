@@ -7,6 +7,7 @@ import { MoonpiController } from "./modes.js";
 import { formatTodoList } from "./state.js";
 import { installSprintWorkflow } from "./sprint.js";
 import { installSynthetic } from "./synthetic.js";
+import { installWafer } from "./wafer.js";
 import { installMoonpiTools } from "./tools.js";
 import type { MoonpiMode } from "./types.js";
 
@@ -141,6 +142,13 @@ ${todoList}`);
   // Synthetic is optional; keep core Moonpi mode hooks installed even if provider setup fails.
   try {
     await installSynthetic(pi, controller);
+  } catch {
+    // Ignore optional provider setup failures.
+  }
+
+  // Wafer is optional; keep core Moonpi mode hooks installed even if provider setup fails.
+  try {
+    await installWafer(pi, controller);
   } catch {
     // Ignore optional provider setup failures.
   }
