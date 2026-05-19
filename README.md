@@ -235,6 +235,34 @@ To disable the search tool even when logged in, set `synthetic.search.enabled` t
 }
 ```
 
+### Wafer Provider
+
+Moonpi registers [Wafer](https://wafer.ai) as the `wafer` provider using the OpenAI-compatible endpoint at `https://pass.wafer.ai/v1`.
+
+Configure credentials with either:
+
+```bash
+export WAFER_API_KEY=...
+```
+
+or run:
+
+```text
+/login wafer
+```
+
+Use `/model` to select a `wafer` model.
+
+To disable the Wafer provider entirely, set `wafer.enabled` to `false` in your config:
+
+```json
+{
+  "wafer": {
+    "enabled": false
+  }
+}
+```
+
 ### Managing Custom Providers
 
 moonpi provides five slash commands to manage custom providers in `~/.pi/agent/models.json`:
@@ -366,6 +394,9 @@ Configure `.pi/moonpi.json` (project) or `~/.pi/agent/moonpi.json` (global):
       "enabled": true
     }
   },
+  "wafer": {
+    "enabled": true
+  },
   "contextFiles": {
     "enabled": true,
     "fileNames": ["README.md", "SPECS.md", "SPRINT.md"],
@@ -410,6 +441,12 @@ Configure `.pi/moonpi.json` (project) or `~/.pi/agent/moonpi.json` (global):
 | Field | Default | Description |
 | --- | --- | --- |
 | `synthetic.search.enabled` | `true` | When `false`, the `web_search` tool is not registered even if logged in with Synthetic |
+
+#### Wafer
+
+| Field | Default | Description |
+| --- | --- | --- |
+| `wafer.enabled` | `true` | When `false`, the Wafer provider is not registered at startup |
 
 #### Keybindings
 
