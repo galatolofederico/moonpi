@@ -149,7 +149,7 @@ export class MoonpiController {
       ? [...new Set([...STABLE_MOONPI_TOOLS, ...this.pi.getActiveTools().filter((toolName) => !MOONPI_TOOL_NAMES.has(toolName))])]
       : [...STABLE_MOONPI_TOOLS];
 
-    if (this.syntheticAuthenticated && this.config.synthetic.search.enabled) {
+    if (this.syntheticAuthenticated && this.config.synthetic.search.enabled && !tools.includes("web_search")) {
       tools.push("web_search");
     }
     return tools;
