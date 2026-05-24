@@ -9,6 +9,7 @@ import { installSprintWorkflow } from "./sprint.js";
 import { installSynthetic } from "./synthetic.js";
 import { installWafer } from "./wafer.js";
 import { installMoonpiTools } from "./tools.js";
+import { installStats } from "./stats.js";
 import type { MoonpiMode } from "./types.js";
 
 const MODES: MoonpiMode[] = ["plan", "act", "auto", "fast"];
@@ -152,4 +153,6 @@ ${todoList}`);
   } catch {
     // Ignore optional provider setup failures.
   }
+
+  installStats(pi);
 }
