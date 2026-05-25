@@ -17,7 +17,10 @@ export const WAFER_MODELS_FALLBACK: ProviderModelConfig[] = [
     name: "Qwen3.5 397B A17B",
     reasoning: true,
     compat: {
-      supportsReasoningEffort: true,
+      thinkingFormat: "zai",
+      supportsStore: false,
+      supportsDeveloperRole: false,
+      supportsReasoningEffort: false,
       reasoningEffortMap: WAFER_REASONING_EFFORT_MAP,
     },
     input: ["text", "image"],
@@ -35,9 +38,12 @@ export const WAFER_MODELS_FALLBACK: ProviderModelConfig[] = [
     name: "GLM 5.1",
     reasoning: true,
     compat: {
-      supportsReasoningEffort: true,
-      reasoningEffortMap: WAFER_REASONING_EFFORT_MAP,
+      thinkingFormat: "zai",
+      zaiToolStream: true,
+      supportsStore: false,
       supportsDeveloperRole: false,
+      supportsReasoningEffort: false,
+      reasoningEffortMap: WAFER_REASONING_EFFORT_MAP,
     },
     input: ["text"],
     cost: {
@@ -159,7 +165,10 @@ export function parseWaferModels(data: WaferModelResponse[], fallback: ProviderM
       name: model.id,
       reasoning: true,
       compat: {
-        supportsReasoningEffort: true,
+        thinkingFormat: "zai",
+        supportsStore: false,
+        supportsDeveloperRole: false,
+        supportsReasoningEffort: false,
         reasoningEffortMap: WAFER_REASONING_EFFORT_MAP,
       },
       input: ["text"],
