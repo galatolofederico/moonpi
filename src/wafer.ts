@@ -56,7 +56,7 @@ async function getWaferApiKey(ctx: ExtensionContext): Promise<string> {
 
 const WAFER_PROVIDER_CONFIG = {
   baseUrl: WAFER_OPENAI_BASE_URL,
-  apiKey: WAFER_API_KEY_ENV,
+  apiKey: `$${WAFER_API_KEY_ENV}`,
   api: "openai-completions" as const,
   headers: {
     "X-Title": "moonpi",

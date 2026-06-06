@@ -434,7 +434,7 @@ async function handleQuotasCommand(ctx: ExtensionCommandContext): Promise<void> 
 
 const SYNTHETIC_PROVIDER_CONFIG = {
   baseUrl: SYNTHETIC_OPENAI_BASE_URL,
-  apiKey: SYNTHETIC_API_KEY_ENV,
+  apiKey: `$${SYNTHETIC_API_KEY_ENV}`,
   api: "openai-completions" as const,
   headers: {
     Referer: "https://github.com/myname/moonpi",
