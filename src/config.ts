@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { getAgentDir } from "@mariozechner/pi-coding-agent";
+import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { MoonpiConfig, MoonpiMode } from "./types.js";
 
 export const DEFAULT_PICKABLE_EXTENSIONS = [

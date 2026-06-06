@@ -1,5 +1,5 @@
-import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext, ProviderModelConfig } from "@mariozechner/pi-coding-agent";
-import { Text } from "@mariozechner/pi-tui";
+import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
+import { Text } from "@earendil-works/pi-tui";
 import { Type, type Static } from "typebox";
 import type { MoonpiController } from "./modes.js";
 import { SYNTHETIC_MODELS_FALLBACK, mergeWithFallback, parseSyntheticModels, readCachedModels, writeCachedModels } from "./synthetic-models.js";

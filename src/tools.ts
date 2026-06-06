@@ -1,6 +1,6 @@
-import { StringEnum } from "@mariozechner/pi-ai";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { Editor, Key, matchesKey, Text, truncateToWidth, type EditorTheme } from "@mariozechner/pi-tui";
+import { StringEnum } from "@earendil-works/pi-ai";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Editor, Key, matchesKey, Text, truncateToWidth, type EditorTheme } from "@earendil-works/pi-tui";
 import { Type, type Static } from "typebox";
 import type { MoonpiController } from "./modes.js";
 import { formatTodoList } from "./state.js";

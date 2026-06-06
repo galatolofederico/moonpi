@@ -1,25 +1,23 @@
-import type { ProviderModelConfig } from "@mariozechner/pi-coding-agent";
+import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { getAgentDir } from "@mariozechner/pi-coding-agent";
+import { getAgentDir } from "@earendil-works/pi-coding-agent";
 
-const SYNTHETIC_REASONING_EFFORT_MAP = {
+const SYNTHETIC_THINKING_LEVEL_MAP: Record<string, string | null> = {
+  off: null,
   minimal: "low",
   low: "low",
   medium: "medium",
   high: "high",
   xhigh: "high",
-} as const;
+};
 
 export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
   {
     id: "hf:zai-org/GLM-4.7",
     name: "zai-org/GLM-4.7",
     reasoning: true,
-    compat: {
-      supportsReasoningEffort: true,
-      reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
-    },
+    thinkingLevelMap: SYNTHETIC_THINKING_LEVEL_MAP,
     input: ["text"],
     cost: {
       input: 0.45,
@@ -34,10 +32,7 @@ export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
     id: "hf:zai-org/GLM-5",
     name: "zai-org/GLM-5",
     reasoning: true,
-    compat: {
-      supportsReasoningEffort: true,
-      reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
-    },
+    thinkingLevelMap: SYNTHETIC_THINKING_LEVEL_MAP,
     input: ["text"],
     cost: {
       input: 1,
@@ -52,9 +47,8 @@ export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
     id: "hf:zai-org/GLM-5.1",
     name: "zai-org/GLM-5.1",
     reasoning: true,
+    thinkingLevelMap: SYNTHETIC_THINKING_LEVEL_MAP,
     compat: {
-      supportsReasoningEffort: true,
-      reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
       supportsDeveloperRole: false,
     },
     input: ["text"],
@@ -71,10 +65,7 @@ export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
     id: "hf:zai-org/GLM-4.7-Flash",
     name: "zai-org/GLM-4.7-Flash",
     reasoning: true,
-    compat: {
-      supportsReasoningEffort: true,
-      reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
-    },
+    thinkingLevelMap: SYNTHETIC_THINKING_LEVEL_MAP,
     input: ["text"],
     cost: {
       input: 0.1,
@@ -103,10 +94,7 @@ export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
     id: "hf:deepseek-ai/DeepSeek-R1-0528",
     name: "deepseek-ai/DeepSeek-R1-0528",
     reasoning: true,
-    compat: {
-      supportsReasoningEffort: true,
-      reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
-    },
+    thinkingLevelMap: SYNTHETIC_THINKING_LEVEL_MAP,
     input: ["text"],
     cost: {
       input: 3,
@@ -149,10 +137,7 @@ export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
     id: "hf:Qwen/Qwen3-Coder-480B-A35B-Instruct",
     name: "Qwen/Qwen3-Coder-480B-A35B-Instruct",
     reasoning: true,
-    compat: {
-      supportsReasoningEffort: true,
-      reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
-    },
+    thinkingLevelMap: SYNTHETIC_THINKING_LEVEL_MAP,
     input: ["text"],
     cost: {
       input: 2,
@@ -167,10 +152,7 @@ export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
     id: "hf:moonshotai/Kimi-K2.5",
     name: "moonshotai/Kimi-K2.5",
     reasoning: true,
-    compat: {
-      supportsReasoningEffort: true,
-      reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
-    },
+    thinkingLevelMap: SYNTHETIC_THINKING_LEVEL_MAP,
     input: ["text", "image"],
     cost: {
       input: 0.45,
@@ -185,10 +167,7 @@ export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
     id: "hf:nvidia/Kimi-K2.5-NVFP4",
     name: "nvidia/Kimi-K2.5-NVFP4",
     reasoning: true,
-    compat: {
-      supportsReasoningEffort: true,
-      reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
-    },
+    thinkingLevelMap: SYNTHETIC_THINKING_LEVEL_MAP,
     input: ["text", "image"],
     cost: {
       input: 0.45,
@@ -217,10 +196,7 @@ export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
     id: "hf:Qwen/Qwen3-235B-A22B-Thinking-2507",
     name: "Qwen/Qwen3-235B-A22B-Thinking-2507",
     reasoning: true,
-    compat: {
-      supportsReasoningEffort: true,
-      reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
-    },
+    thinkingLevelMap: SYNTHETIC_THINKING_LEVEL_MAP,
     input: ["text"],
     cost: {
       input: 0.65,
@@ -235,10 +211,7 @@ export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
     id: "hf:Qwen/Qwen3.5-397B-A17B",
     name: "Qwen/Qwen3.5-397B-A17B",
     reasoning: true,
-    compat: {
-      supportsReasoningEffort: true,
-      reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
-    },
+    thinkingLevelMap: SYNTHETIC_THINKING_LEVEL_MAP,
     input: ["text", "image"],
     cost: {
       input: 0.6,
@@ -253,6 +226,7 @@ export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
     id: "hf:MiniMaxAI/MiniMax-M2.5",
     name: "MiniMaxAI/MiniMax-M2.5",
     reasoning: true,
+    thinkingLevelMap: SYNTHETIC_THINKING_LEVEL_MAP,
     input: ["text"],
     cost: {
       input: 0.4,
@@ -263,8 +237,6 @@ export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
     contextWindow: 191488,
     maxTokens: 65536,
     compat: {
-      supportsReasoningEffort: true,
-      reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
       maxTokensField: "max_completion_tokens",
     },
   },
@@ -272,10 +244,7 @@ export const SYNTHETIC_MODELS_FALLBACK: ProviderModelConfig[] = [
     id: "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4",
     name: "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4",
     reasoning: true,
-    compat: {
-      supportsReasoningEffort: true,
-      reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
-    },
+    thinkingLevelMap: SYNTHETIC_THINKING_LEVEL_MAP,
     input: ["text"],
     cost: {
       input: 0.3,
@@ -424,11 +393,10 @@ export function parseSyntheticModels(data: SyntheticModelResponse[]): ProviderMo
 
     const overrides = MODEL_COMPAT_OVERRIDES[model.id];
     if (hasReasoning) {
-      config.compat = {
-        supportsReasoningEffort: true,
-        reasoningEffortMap: SYNTHETIC_REASONING_EFFORT_MAP,
-        ...overrides,
-      };
+      config.thinkingLevelMap = SYNTHETIC_THINKING_LEVEL_MAP;
+      if (overrides) {
+        config.compat = { ...overrides };
+      }
     } else if (overrides) {
       config.compat = { ...overrides };
     }

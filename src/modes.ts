@@ -1,6 +1,6 @@
-import type { ExtensionAPI, ExtensionContext, SessionEntry } from "@mariozechner/pi-coding-agent";
-import type { KeyId } from "@mariozechner/pi-tui";
-import { matchesKey } from "@mariozechner/pi-tui";
+import type { ExtensionAPI, ExtensionContext, SessionEntry } from "@earendil-works/pi-coding-agent";
+import type { KeyId } from "@earendil-works/pi-tui";
+import { matchesKey } from "@earendil-works/pi-tui";
 import { loadMoonpiConfig } from "./config.js";
 import { MoonpiState, formatTodoList } from "./state.js";
 import type { MoonpiConfig, MoonpiMode, MoonpiSnapshot } from "./types.js";

@@ -48,7 +48,7 @@ If these **resonate** with you, you might **find** this set of extensions **usef
 First, install the base `pi` coding agent globally:
 
 ```bash
-npm install -g @mariozechner/pi-coding-agent
+npm install -g @earendil-works/pi-coding-agent
 ```
 
 Then, install the `moonpi` extension set directly via `pi`:

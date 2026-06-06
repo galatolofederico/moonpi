@@ -1,5 +1,5 @@
-import { CustomEditor, type ExtensionContext, type KeybindingsManager, type Theme } from "@mariozechner/pi-coding-agent";
-import type { EditorTheme, TUI } from "@mariozechner/pi-tui";
+import { CustomEditor, type ExtensionContext, type KeybindingsManager, type Theme } from "@earendil-works/pi-coding-agent";
+import type { EditorTheme, TUI } from "@earendil-works/pi-tui";
 import { createRequire } from "node:module";
 import type { MoonpiMode } from "./types.js";
 

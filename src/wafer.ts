@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ExtensionContext, ProviderModelConfig } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { WAFER_MODELS_FALLBACK, mergeWithFallback, parseWaferModels, readCachedModels, writeCachedModels } from "./wafer-models.js";
 import type { MoonpiController } from "./modes.js";
 

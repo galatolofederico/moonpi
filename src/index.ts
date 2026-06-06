@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { formatConfig } from "./config.js";
 import { installContextFiles } from "./context-files.js";
 import { installCustomProviderCommands } from "./custom-providers.js";

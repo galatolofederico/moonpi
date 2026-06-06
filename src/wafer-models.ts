@@ -1,27 +1,27 @@
-import type { ProviderModelConfig } from "@mariozechner/pi-coding-agent";
+import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { getAgentDir } from "@mariozechner/pi-coding-agent";
+import { getAgentDir } from "@earendil-works/pi-coding-agent";
 
-const WAFER_REASONING_EFFORT_MAP = {
+const WAFER_THINKING_LEVEL_MAP: Record<string, string | null> = {
+  off: null,
   minimal: "low",
   low: "low",
   medium: "medium",
   high: "high",
   xhigh: "high",
-} as const;
+};
 
 export const WAFER_MODELS_FALLBACK: ProviderModelConfig[] = [
   {
     id: "Qwen3.5-397B-A17B",
     name: "Qwen3.5 397B A17B",
     reasoning: true,
+    thinkingLevelMap: WAFER_THINKING_LEVEL_MAP,
     compat: {
       thinkingFormat: "zai",
       supportsStore: false,
       supportsDeveloperRole: false,
-      supportsReasoningEffort: false,
-      reasoningEffortMap: WAFER_REASONING_EFFORT_MAP,
     },
     input: ["text", "image"],
     cost: {
@@ -37,13 +37,12 @@ export const WAFER_MODELS_FALLBACK: ProviderModelConfig[] = [
     id: "GLM-5.1",
     name: "GLM 5.1",
     reasoning: true,
+    thinkingLevelMap: WAFER_THINKING_LEVEL_MAP,
     compat: {
       thinkingFormat: "zai",
       zaiToolStream: true,
       supportsStore: false,
       supportsDeveloperRole: false,
-      supportsReasoningEffort: false,
-      reasoningEffortMap: WAFER_REASONING_EFFORT_MAP,
     },
     input: ["text"],
     cost: {
@@ -164,12 +163,11 @@ export function parseWaferModels(data: WaferModelResponse[], fallback: ProviderM
       id: model.id,
       name: model.id,
       reasoning: true,
+      thinkingLevelMap: WAFER_THINKING_LEVEL_MAP,
       compat: {
         thinkingFormat: "zai",
         supportsStore: false,
         supportsDeveloperRole: false,
-        supportsReasoningEffort: false,
-        reasoningEffortMap: WAFER_REASONING_EFFORT_MAP,
       },
       input: ["text"],
       cost: {
