@@ -293,7 +293,7 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
         return;
       }
       if (!controller.config.contextFiles.enabled) {
-        ctx.ui.notify("moonpi context file injection is disabled in /moonpi:settings.", "warning");
+        ctx.ui.notify("Context file injection is disabled in /moonpi:settings.", "warning");
       }
 
       const tree = buildPickerTree(ctx.cwd, controller);
@@ -424,7 +424,7 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
           const lines: string[] = [];
           const add = (line: string) => lines.push(truncateToWidth(line, width));
 
-          add(theme.fg("accent", theme.bold("Pick moonpi context files")));
+          add(theme.fg("accent", theme.bold("Pick context files")));
           add(theme.fg("dim", `${selectedCount}/${totalFiles} files selected for prompt injection`));
           if (scanLimitMessage) add(theme.fg("warning", scanLimitMessage));
           add(theme.fg("dim", "↑/↓ move • ←/→ close/open • Space select • D deselect all • Enter confirm • Esc cancel"));
@@ -450,7 +450,7 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
       });
 
       if (!result.confirmed) {
-        ctx.ui.notify("moonpi context selection cancelled", "info");
+        ctx.ui.notify("Context selection cancelled", "info");
         return;
       }
 
@@ -466,7 +466,7 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
     description: "Show files selected for prompt injection",
     handler: async (_args, ctx) => {
       if (!controller.config.contextFiles.enabled) {
-        ctx.ui.notify("moonpi context file injection is disabled in /moonpi:settings.", "warning");
+        ctx.ui.notify("Context file injection is disabled in /moonpi:settings.", "warning");
         return;
       }
 
@@ -488,7 +488,7 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
     description: "Deselect all context files (clear /pick and auto-discovered files)",
     handler: async (_args, ctx) => {
       if (!controller.config.contextFiles.enabled) {
-        ctx.ui.notify("moonpi context file injection is disabled in /moonpi:settings.", "warning");
+        ctx.ui.notify("Context file injection is disabled in /moonpi:settings.", "warning");
         return;
       }
 
@@ -505,12 +505,12 @@ export function installContextFiles(pi: ExtensionAPI, controller: MoonpiControll
     const paths = discovery ? discovery.paths : getEffectiveSelectedContextFilePaths(ctx.cwd, controller);
     const scanLimitMessage = discovery ? formatScanLimitMessage(discovery.stats) : undefined;
     if (paths.length === 0) {
-      if (scanLimitMessage) ctx.ui.notify(`moonpi default context file ${scanLimitMessage}.`, "warning");
+      if (scanLimitMessage) ctx.ui.notify(`Default context file ${scanLimitMessage}.`, "warning");
       return;
     }
     const fileList = paths.map((p) => `  ${p}`).join("\n");
     const scanNotice = scanLimitMessage ? `\n\nNote: default context file ${scanLimitMessage}.` : "";
-    ctx.ui.notify(`moonpi context files selected for injection (/pick to change):\n${fileList}${scanNotice}`, "info");
+    ctx.ui.notify(`Context files selected for injection (/pick to change):\n${fileList}${scanNotice}`, "info");
   });
 
   pi.on("before_agent_start", async (event) => {

@@ -89,7 +89,7 @@ function phaseById(cwd: string, sprintNumber: number, phaseId: string): Phase | 
 }
 
 function buildPhaseInstruction(sprintNumber: number, phase: Phase): string {
-  return `Moonpi sprint loop: complete Sprint ${sprintNumber}, Phase ${phase.id}: ${phase.title}.
+  return `Sprint loop: complete Sprint ${sprintNumber}, Phase ${phase.id}: ${phase.title}.
 
 Work only on this phase. Update files as needed, run or document the verification listed for this phase, and update TODO items as work progresses. When this phase is complete, call end_phase with sprintNumber ${sprintNumber}, phaseId "${phase.id}", and a concise summary.
 
@@ -118,7 +118,7 @@ function markPhaseComplete(cwd: string, sprintNumber: number, phaseId: string, s
 
 function continueAfterCompaction(pi: ExtensionAPI, ctx: ExtensionContext, prompt: string): void {
   ctx.compact({
-    customInstructions: "Moonpi sprint loop completed one phase. Preserve the sprint goal, completed phase summary, and next phase instructions.",
+    customInstructions: "Sprint loop completed one phase. Preserve the sprint goal, completed phase summary, and next phase instructions.",
     onComplete: () => pi.sendUserMessage(prompt),
     onError: () => pi.sendUserMessage(prompt),
   });
@@ -234,10 +234,10 @@ Do not start implementing anything. Only create the sprint planning files.`,
     name: "end_phase",
     label: "end phase",
     description:
-      "Finish the active moonpi sprint phase. This marks the phase complete in TASKS.md, then moonpi compacts context and continues with the next phase.",
+      "Finish the active sprint phase. This marks the phase complete in TASKS.md, then compacts context and continues with the next phase.",
     promptSnippet: "Finish the active sprint phase",
     promptGuidelines: [
-      "Use end_phase only when a Moonpi sprint loop is active and the current sprint phase is complete.",
+      "Use end_phase only when a sprint loop is active and the current sprint phase is complete.",
       "Do not call end_phase for ordinary Plan, Auto, Act, or Fast mode work.",
     ],
     parameters: EndPhaseParamsSchema,
@@ -286,7 +286,7 @@ Do not start implementing anything. Only create the sprint planning files.`,
         content: [
           {
             type: "text",
-            text: `Phase ${phaseId} complete. Moonpi will compact context and continue with phase ${next.id}.`,
+            text: `Phase ${phaseId} complete. Context will be compact and continue with phase ${next.id}.`,
           },
         ],
         details: { sprintNumber, completedPhaseId: phaseId, nextPhaseId: next.id },

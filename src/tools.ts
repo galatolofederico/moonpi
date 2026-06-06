@@ -73,16 +73,16 @@ interface EndConversationDetails {
 export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiController): void {
   pi.registerTool({
     name: "todo",
-    label: "moonpi todo",
+    label: "todo",
     description:
       "Create, replace, update, remove, clear, or list the active TODO list. Use this in Plan phases before implementation and in Act phases to track progress.",
     promptSnippet: "Manage the required TODO list",
     promptGuidelines: [
       "Use todo to create concrete, ordered TODO items before acting in Plan or Auto planning.",
-      "When Moonpi Auto mode is in Plan phase, first inspect with read-only tools, then use todo to produce a concrete TODO list before any edits. If the user only asked a question or no work is needed, call end_conversation instead of creating TODOs.",
+      "When Auto mode is in Plan phase, first inspect with read-only tools, then use todo to produce a concrete TODO list before any edits. If the user only asked a question or no work is needed, call end_conversation instead of creating TODOs.",
       "When executing a TODO list in Act phases, update TODO statuses with todo as work progresses.",
       "When a TODO item changes, update it with todo so the current list is returned. Use todo with action 'list' if the current TODO state is not visible.",
-      "todo is disabled in Moonpi Fast mode even though its schema remains advertised for prompt-cache stability.",
+      "todo is disabled in Fast mode even though its schema remains advertised for prompt-cache stability.",
     ],
     parameters: TodoParamsSchema,
     async execute(_toolCallId, params: TodoParams, _signal, _onUpdate, ctx) {
@@ -148,8 +148,8 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
       controller.persist();
       const suffix = shouldEndAutoPlan
         ? controller.state.mode === "sprint:plan"
-          ? "\n\nMoonpi Sprint planning is complete. The next turn will switch to Sprint Act mode with editing tools enabled."
-          : "\n\nMoonpi Auto planning is complete. The next turn will switch to Act mode with editing tools enabled."
+          ? "\n\nSprint planning is complete. The next turn will switch to Sprint Act mode with editing tools enabled."
+          : "\n\nAuto planning is complete. The next turn will switch to Act mode with editing tools enabled."
         : "";
       return {
         content: [{ type: "text", text: `Current TODO list:\n${formatTodoList(controller.state.todos)}${suffix}` }],
@@ -168,7 +168,7 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
 
   pi.registerTool({
     name: "question",
-    label: "moonpi question",
+    label: "question",
     description:
       "Ask the user a clarifying question when a decision is required before continuing. Supports three types: 'single' (pick one option, default), 'multiple' (pick several options), and 'open' (free-text answer). For single and multiple types, a free-text 'Other' option is always included automatically.",
     promptSnippet: "Ask the user a concise clarifying question",
@@ -450,16 +450,16 @@ export function installMoonpiTools(pi: ExtensionAPI, controller: MoonpiControlle
     name: "end_conversation",
     label: "end conversation",
     description:
-      "In Moonpi Auto planning, call this instead of creating TODOs when the user only asked a question or no action is needed.",
+      "In Auto planning, call this instead of creating TODOs when the user only asked a question or no action is needed.",
     promptSnippet: "End Auto planning without switching to Act",
     promptGuidelines: [
-      "Use end_conversation only in Moonpi Auto Plan mode when the request needs no edits and no Act phase.",
+      "Use end_conversation only in Auto Plan mode when the request needs no edits and no Act phase.",
     ],
     parameters: EndConversationParamsSchema,
     async execute(_toolCallId, params: Static<typeof EndConversationParamsSchema>) {
       if (!controller.isEndConversationAllowed()) {
         return {
-          content: [{ type: "text", text: "end_conversation is only available in Moonpi Auto Plan phase." }],
+          content: [{ type: "text", text: "end_conversation is only available in Auto Plan phase." }],
           details: { error: "invalid mode", mode: controller.state.mode, autoPhase: controller.state.autoPhase } satisfies EndConversationDetails,
         };
       }

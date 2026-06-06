@@ -96,7 +96,7 @@ ${controller.buildModePrompt()}`,
     if (isPlanMode && controller.state.todos.length === 0) {
       setImmediate(() => {
         pi.sendUserMessage(
-          "Moonpi Plan mode requires a TODO list before the turn can finish. Use todo to create the plan now.",
+          "Plan mode requires a TODO list before the turn can finish. Use todo to create the plan now.",
         );
       });
       return;
@@ -118,7 +118,7 @@ ${controller.buildModePrompt()}`,
       controller.applyMode(ctx);
       controller.persist();
       setImmediate(() => {
-        pi.sendUserMessage("Moonpi Sprint mode is switching to Act phase. Execute the TODO list now.");
+        pi.sendUserMessage("Sprint mode is switching to Act phase. Execute the TODO list now.");
       });
       return;
     }

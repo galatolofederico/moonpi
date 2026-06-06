@@ -54,7 +54,7 @@ test("todo tool mutates, persists, renders status, and triggers Auto Act transit
   const harness = await createMoonpiHarness({ config: defaultConfig });
   try {
     let result = await harness.callTool("todo", { action: "add", text: "First", notes: "note" });
-    assert.match(textOf(result), /Moonpi Auto planning is complete/);
+    assert.match(textOf(result), /Auto planning is complete/);
     assert.equal(result.terminate, true);
     assert.match(harness.widgets.get("moonpi-todos").value.join("\n"), /First \(note\)/);
     assert.equal(harness.entries.at(-1).customType, "moonpi-state");

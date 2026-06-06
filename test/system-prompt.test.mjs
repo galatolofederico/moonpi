@@ -48,8 +48,8 @@ test("Moonpi prompt setup does not use Synthetic API keys or network", async () 
 
     assert.ok(todo, "todo tool should be registered");
     assert.ok(endConversation, "end_conversation tool should be registered");
-    assert.match(todo.promptGuidelines.join("\n"), /When Moonpi Auto mode is in Plan phase/);
-    assert.match(endConversation.promptGuidelines.join("\n"), /Use end_conversation only in Moonpi Auto Plan mode/);
+    assert.match(todo.promptGuidelines.join("\n"), /When Auto mode is in Plan phase/);
+    assert.match(endConversation.promptGuidelines.join("\n"), /Use end_conversation only in Auto Plan mode/);
     assert.deepEqual(harness.activeTools, stableMoonpiTools);
   } finally {
     await harness.cleanup();

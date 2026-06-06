@@ -65,7 +65,7 @@ export function installGuards(pi: ExtensionAPI, controller: MoonpiController): v
       const allowedTools = controller.isQuestionAllowed() ? "read, grep, find, ls, todo, or question" : "read, grep, find, ls, or todo";
       return {
         block: true,
-        reason: `moonpi blocked ${event.toolName}: the current Moonpi phase is read-only. Use ${allowedTools} instead.`,
+        reason: `${event.toolName} is blocked: the current phase is read-only. Use ${allowedTools} instead.`,
       };
     }
 
@@ -75,7 +75,7 @@ export function installGuards(pi: ExtensionAPI, controller: MoonpiController): v
     if (controller.config.guards.cwdOnly && !isInsideCwd(rawPath, ctx.cwd) && !isInAllowedPath(rawPath, ctx.cwd, controller.config.guards.allowedPaths)) {
       return {
         block: true,
-        reason: `moonpi blocked ${event.toolName}: path is outside the current working directory and allowed paths: ${rawPath}`,
+        reason: `${event.toolName} is blocked: path is outside the current working directory and allowed paths: ${rawPath}`,
       };
     }
 
@@ -86,7 +86,7 @@ export function installGuards(pi: ExtensionAPI, controller: MoonpiController): v
 
     return {
       block: true,
-      reason: `moonpi blocked ${event.toolName}: read the file first before modifying it: ${rawPath}`,
+      reason: `${event.toolName} is blocked: read the file first before modifying it: ${rawPath}`,
     };
   });
 
