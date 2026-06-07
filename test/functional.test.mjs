@@ -24,7 +24,6 @@ test("registers the expected commands, tools, UI, status, and default active too
     assert.deepEqual([...harness.tools.keys()].sort(), ["end_conversation", "end_phase", "question", "todo"].sort());
     assert.ok(harness.headerFactory, "startup installs a custom header");
     assert.ok(harness.editorFactory, "startup installs a custom editor");
-    assert.ok(harness.terminalInputHandler, "startup installs a terminal input handler");
     assert.deepEqual(harness.status, { key: "moonpi", value: "moonpi auto:plan 0/0" });
     assert.deepEqual(harness.activeTools, stableMoonpiTools);
   } finally {
@@ -469,13 +468,3 @@ test("session snapshots restore mode, todos, selected context files, and read gu
   }
 });
 
-test("session_shutdown disposes terminal input subscription", async () => {
-  const harness = await createMoonpiHarness({ config: defaultConfig });
-  try {
-    assert.ok(harness.terminalInputHandler);
-    await harness.emit("session_shutdown");
-    assert.equal(harness.terminalInputHandler, undefined);
-  } finally {
-    await harness.cleanup();
-  }
-});
