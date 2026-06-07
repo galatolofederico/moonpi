@@ -96,10 +96,6 @@ export const DEFAULT_CONFIG: MoonpiConfig = {
     allowedPaths: [],
     readBeforeWrite: true,
   },
-  keybindings: {
-    cycleNext: "tab",
-    cyclePrevious: "",
-  },
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -137,7 +133,6 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
     wafer: { ...base.wafer },
     contextFiles: { ...base.contextFiles },
     guards: { ...base.guards },
-    keybindings: { ...base.keybindings },
   };
 
   if (isSelectableMode(raw.defaultMode)) next.defaultMode = raw.defaultMode;
@@ -183,13 +178,6 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
     next.guards.allowedPaths = readStringArray(raw.guards.allowedPaths, next.guards.allowedPaths);
     if (typeof raw.guards.readBeforeWrite === "boolean") {
       next.guards.readBeforeWrite = raw.guards.readBeforeWrite;
-    }
-  }
-
-  if (isRecord(raw.keybindings)) {
-    if (typeof raw.keybindings.cycleNext === "string") next.keybindings.cycleNext = raw.keybindings.cycleNext;
-    if (typeof raw.keybindings.cyclePrevious === "string") {
-      next.keybindings.cyclePrevious = raw.keybindings.cyclePrevious;
     }
   }
 

@@ -64,8 +64,4 @@ export interface MoonpiConfig {
     allowedPaths: string[];
     readBeforeWrite: boolean;
   };
-  keybindings: {
-    cycleNext: string;
-    cyclePrevious: string;
-  };
 }

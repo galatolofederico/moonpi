@@ -1,12 +1,9 @@
 import type { ExtensionAPI, ExtensionContext, SessionEntry } from "@earendil-works/pi-coding-agent";
-import type { KeyId } from "@earendil-works/pi-tui";
-import { matchesKey } from "@earendil-works/pi-tui";
 import { loadMoonpiConfig } from "./config.js";
 import { MoonpiState, formatTodoList } from "./state.js";
 import type { MoonpiConfig, MoonpiMode, MoonpiSnapshot } from "./types.js";
 import { installMoonpiEditor, installMoonpiHeader } from "./ui.js";
 
-const MODE_ORDER: MoonpiMode[] = ["plan", "act", "auto", "fast"];
 const STABLE_MOONPI_TOOLS = [
   "read",
   "grep",
@@ -21,8 +18,6 @@ const STABLE_MOONPI_TOOLS = [
   "end_phase",
 ];
 const MOONPI_TOOL_NAMES = new Set(STABLE_MOONPI_TOOLS);
-type Direction = "next" | "previous";
-
 function entryHasMoonpiSnapshot(entry: SessionEntry): entry is SessionEntry & { customType: "moonpi-state"; data: MoonpiSnapshot } {
   if (entry.type !== "custom") return false;
   const candidate = entry as SessionEntry & { customType?: string; data?: unknown };
@@ -41,8 +36,6 @@ export class MoonpiController {
   readonly state = new MoonpiState();
   config: MoonpiConfig = loadMoonpiConfig(process.cwd());
   syntheticAuthenticated = false;
-  private terminalInputUnsubscribe: (() => void) | undefined;
-
   constructor(private readonly pi: ExtensionAPI) {}
 
   restoreFromSession(ctx: ExtensionContext): void {
@@ -60,14 +53,6 @@ export class MoonpiController {
     this.applyMode(ctx);
     this.persist();
     ctx.ui.notify(`moonpi mode: ${mode}`, "info");
-  }
-
-  cycleMode(ctx: ExtensionContext, direction: Direction): void {
-    const currentIndex = MODE_ORDER.indexOf(this.state.mode);
-    const offset = direction === "next" ? 1 : -1;
-    const nextIndex = (currentIndex + offset + MODE_ORDER.length) % MODE_ORDER.length;
-    const nextMode = MODE_ORDER[nextIndex] ?? "auto";
-    this.setMode(ctx, nextMode);
   }
 
   resetForUserPrompt(ctx: ExtensionContext): void {
@@ -109,24 +94,6 @@ export class MoonpiController {
     if (this.config.customEditor) {
       installMoonpiEditor(ctx, () => this.state.mode);
     }
-    this.terminalInputUnsubscribe?.();
-    this.terminalInputUnsubscribe = ctx.ui.onTerminalInput((data) => {
-      if (ctx.ui.getEditorText().length > 0) return undefined;
-      if (matchesKey(data, this.config.keybindings.cycleNext as KeyId)) {
-        this.cycleMode(ctx, "next");
-        return { consume: true };
-      }
-      if (matchesKey(data, this.config.keybindings.cyclePrevious as KeyId)) {
-        this.cycleMode(ctx, "previous");
-        return { consume: true };
-      }
-      return undefined;
-    });
-  }
-
-  disposeUi(): void {
-    this.terminalInputUnsubscribe?.();
-    this.terminalInputUnsubscribe = undefined;
   }
 
   updateUi(ctx: ExtensionContext): void {

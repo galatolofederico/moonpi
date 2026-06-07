@@ -103,7 +103,7 @@ moonpi provides four modes (Auto Mode has two phases):
 | **Auto Mode** (Act phase) | `read`, `grep`, `find`, `ls`, `bash`, `edit`, `write`, `todo`, `question` (+ `end_phase` in sprint loop) | After planning, the model executes the TODO list with full planning context intact. |
 | **Fast Mode** | `read`, `grep`, `find`, `ls`, `bash`, `edit`, `write` (+ `end_phase` in sprint loop) | Direct execution mode. No planning requirement, no TODO list, no QnA. Useful for quick edits and simple tasks. |
 
-Modes can be cycled using `Tab`
+Switch modes with `/moonpi:mode` or `/moonpi:mode <plan|act|auto|fast>`.
 
 Each mode has a different textbox color in the UI, making the current workflow state immediately visible.
 
@@ -421,10 +421,6 @@ Configure `.pi/moonpi.json` (project) or `~/.pi/agent/moonpi.json` (global):
     "allowedPaths": ["~/.pi/agent"],
     "readBeforeWrite": true
   },
-  "keybindings": {
-    "cycleNext": "tab",
-    "cyclePrevious": ""
-  }
 }
 ```
 
@@ -447,13 +443,6 @@ Configure `.pi/moonpi.json` (project) or `~/.pi/agent/moonpi.json` (global):
 | Field | Default | Description |
 | --- | --- | --- |
 | `wafer.enabled` | `true` | When `false`, the Wafer provider is not registered at startup |
-
-#### Keybindings
-
-| Field | Default | Description |
-| --- | --- | --- |
-| `cycleNext` | `"tab"` | Keybinding to cycle to the next mode when the editor is empty |
-| `cyclePrevious` | `""` (disabled) | Keybinding to cycle to the previous mode when the editor is empty |
 
 #### Context files
 

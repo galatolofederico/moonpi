@@ -70,9 +70,6 @@ export default async function moonpi(pi: ExtensionAPI): Promise<void> {
     controller.applyMode(ctx);
   });
 
-  pi.on("session_shutdown", async () => {
-    controller.disposeUi();
-  });
 
   pi.on("input", async (event, ctx) => {
     if (event.source !== "extension") controller.resetForUserPrompt(ctx);
