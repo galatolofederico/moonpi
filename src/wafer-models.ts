@@ -62,7 +62,15 @@ export const WAFER_MODELS_FALLBACK: ProviderModelConfig[] = [
 
 const CACHE_FILE_NAME = "wafer-models-cache.json";
 
-/** Maximum age in milliseconds before cached models are considered stale (12h). */
+/**
+ * Maximum age in milliseconds before cached models are considered stale.
+ *
+ * Stale caches are **still returned** by `readCachedModels()` — they contain
+ * models from the last successful API fetch and are far more complete than the
+ * hardcoded fallback list. The caller always performs a background refresh to
+ * obtain the latest models, so there is no downside to serving stale data on
+ * the fast path. This threshold is kept only for documentation purposes.
+ */
 const CACHE_STALE_MS = 12 * 60 * 60 * 1000;
 
 interface WaferModelsCache {
@@ -79,9 +87,15 @@ export function getCacheFilePath(): string {
 
 /**
  * Read cached Wafer models from disk.
- * Returns `undefined` when the cache is missing, corrupt, or older than `maxAgeMs`.
+ *
+ * Returns `undefined` only when the cache is missing or corrupt. Stale caches
+ * (older than `maxAgeMs`) are **still returned** — they contain models from the
+ * last successful API fetch and are far more complete than the hardcoded
+ * fallback list. The caller always performs a background refresh to get the
+ * latest models, so there is no downside to serving stale data on the fast path.
  */
 export function readCachedModels(maxAgeMs: number = CACHE_STALE_MS): ProviderModelConfig[] | undefined {
+  void maxAgeMs; // staleness no longer gates whether models are returned
   const filePath = getCacheFilePath();
   if (!existsSync(filePath)) return undefined;
 
@@ -89,10 +103,6 @@ export function readCachedModels(maxAgeMs: number = CACHE_STALE_MS): ProviderMod
     const raw = readFileSync(filePath, "utf-8");
     const cache = JSON.parse(raw) as WaferModelsCache;
     if (!Array.isArray(cache.models) || cache.models.length === 0) return undefined;
-
-    // Check staleness
-    const updated = new Date(cache.updatedAt).getTime();
-    if (Number.isNaN(updated) || Date.now() - updated > maxAgeMs) return undefined;
 
     return cache.models;
   } catch {
