@@ -73,6 +73,11 @@ export default async function moonpi(pi: ExtensionAPI): Promise<void> {
 
   pi.on("input", async (event, ctx) => {
     if (event.source !== "extension") controller.resetForUserPrompt(ctx);
+    // Clear phaseTransitioning when the next phase prompt arrives after compaction/clear.
+    if (controller.state.sprintLoop?.phaseTransitioning) {
+      controller.state.sprintLoop.phaseTransitioning = false;
+      controller.persist();
+    }
     return { action: "continue" };
   });
 
@@ -88,6 +93,9 @@ ${controller.buildModePrompt()}`,
 
   pi.on("agent_end", async (_event, ctx) => {
     controller.updateUi(ctx);
+
+    // Sprint phase transition in progress — skip all generic sprint handling.
+    if (controller.state.sprintLoop?.phaseTransitioning) return;
 
     const isPlanMode = controller.state.mode === "plan" || controller.state.mode === "sprint:plan";
     if (isPlanMode && controller.state.todos.length === 0) {

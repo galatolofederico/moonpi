@@ -20,6 +20,7 @@ export function createMockExtensionRuntime(cwd, options = {}) {
   const sentUserMessages = [];
   const notifications = [];
   const compactions = [];
+  const execCalls = [];
   let activeTools = [];
   let headerFactory;
   let editorFactory;
@@ -110,6 +111,14 @@ export function createMockExtensionRuntime(cwd, options = {}) {
       entries.push({ type: "custom", customType, data });
     },
     sendUserMessage: (message) => sentUserMessages.push(message),
+    exec: async (command, args, execOptions) => {
+      const call = { command, args, options: execOptions };
+      execCalls.push(call);
+      if (typeof options.exec === "function") return options.exec(command, args, execOptions);
+      if (Array.isArray(options.execResults)) return options.execResults.shift() ?? { stdout: "", stderr: "", code: 1, killed: false };
+      // Return non-zero exit code by default so git detection returns false.
+      return { stdout: "", stderr: "", code: 1, killed: false };
+    },
   };
 
   async function emit(event, payload = {}) {
@@ -158,6 +167,7 @@ export function createMockExtensionRuntime(cwd, options = {}) {
     notifications,
     sentUserMessages,
     compactions,
+    execCalls,
     widgets,
     emit,
     buildInjectedPrompt,
@@ -215,6 +225,7 @@ export async function createMoonpiHarness({ config, runtimeOptions } = {}) {
     notifications: runtime.notifications,
     sentUserMessages: runtime.sentUserMessages,
     compactions: runtime.compactions,
+    execCalls: runtime.execCalls,
     widgets: runtime.widgets,
     emit: runtime.emit,
     buildInjectedPrompt: runtime.buildInjectedPrompt,

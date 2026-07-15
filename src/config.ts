@@ -50,6 +50,10 @@ export const DEFAULT_CONFIG: MoonpiConfig = {
   wafer: {
     enabled: true,
   },
+  sprint: {
+    contextAction: "clear",
+    autoCommit: true,
+  },
   contextFiles: {
     enabled: true,
     fileNames: ["README.md", "SPECS.md", "SPRINT.md"],
@@ -133,6 +137,7 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
     wafer: { ...base.wafer },
     contextFiles: { ...base.contextFiles },
     guards: { ...base.guards },
+    sprint: { ...base.sprint },
   };
 
   if (isSelectableMode(raw.defaultMode)) next.defaultMode = raw.defaultMode;
@@ -178,6 +183,15 @@ function mergeConfig(base: MoonpiConfig, raw: Record<string, unknown> | undefine
     next.guards.allowedPaths = readStringArray(raw.guards.allowedPaths, next.guards.allowedPaths);
     if (typeof raw.guards.readBeforeWrite === "boolean") {
       next.guards.readBeforeWrite = raw.guards.readBeforeWrite;
+    }
+  }
+
+  if (isRecord(raw.sprint)) {
+    if (raw.sprint.contextAction === "clear" || raw.sprint.contextAction === "compact") {
+      next.sprint.contextAction = raw.sprint.contextAction;
+    }
+    if (typeof raw.sprint.autoCommit === "boolean") {
+      next.sprint.autoCommit = raw.sprint.autoCommit;
     }
   }
 

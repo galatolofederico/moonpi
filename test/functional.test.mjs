@@ -428,6 +428,97 @@ test("sprint:loop enters sprint plan, end_phase completes phases, compacts, and 
   }
 });
 
+test("sprint default contextAction is clear and uses aggressive compaction instructions", async () => {
+  const harness = await createMoonpiHarness({ config: defaultConfig });
+  try {
+    await mkdir(join(harness.cwd, "sprints", "1"), { recursive: true });
+    await writeFile(
+      join(harness.cwd, "sprints", "1", "TASKS.md"),
+      "## Phase 1: Setup\n\n- [ ] Implement setup\n\n**Verification:**\n- Verify setup\n\n## Phase 2: Finish\n\n- [ ] Implement finish\n\n**Verification:**\n- Verify finish\n",
+    );
+
+    await harness.runCommand("sprint:loop", "");
+    await harness.callTool("end_phase", { summary: "setup done" });
+    await harness.emit("agent_end", { messages: [] });
+
+    assert.equal(harness.compactions.length, 1);
+    const instructions = harness.compactions[0].customInstructions;
+    assert.match(instructions, /minimal summary/i);
+    assert.doesNotMatch(instructions, /Preserve the sprint goal/);
+  } finally {
+    await harness.cleanup();
+  }
+});
+
+test("sprint contextAction compact uses preserving compaction instructions", async () => {
+  const harness = await createMoonpiHarness({ config: { ...defaultConfig, sprint: { contextAction: "compact", autoCommit: false } } });
+  try {
+    await mkdir(join(harness.cwd, "sprints", "1"), { recursive: true });
+    await writeFile(
+      join(harness.cwd, "sprints", "1", "TASKS.md"),
+      "## Phase 1: Setup\n\n- [ ] Implement setup\n\n**Verification:**\n- Verify setup\n\n## Phase 2: Finish\n\n- [ ] Implement finish\n\n**Verification:**\n- Verify finish\n",
+    );
+
+    await harness.runCommand("sprint:loop", "");
+    const result = await harness.callTool("end_phase", { summary: "setup done" });
+    assert.match(textOf(result), /compacted/);
+    await harness.emit("agent_end", { messages: [] });
+
+    assert.equal(harness.compactions.length, 1);
+    const instructions = harness.compactions[0].customInstructions;
+    assert.match(instructions, /Preserve the sprint goal/);
+  } finally {
+    await harness.cleanup();
+  }
+});
+
+test("sprint autoCommit calls git when in a git repo", async () => {
+  const execResults = [
+    { stdout: "true\n", stderr: "", code: 0, killed: false },  // git rev-parse --is-inside-work-tree
+    { stdout: "M file.txt\n", stderr: "", code: 0, killed: false }, // git status --porcelain
+    { stdout: "", stderr: "", code: 0, killed: false },            // git add -A
+    { stdout: "", stderr: "", code: 0, killed: false },            // git commit -m
+  ];
+  const harness = await createMoonpiHarness({ config: { ...defaultConfig, sprint: { contextAction: "clear", autoCommit: true } }, runtimeOptions: { execResults } });
+  try {
+    await mkdir(join(harness.cwd, "sprints", "1"), { recursive: true });
+    await writeFile(
+      join(harness.cwd, "sprints", "1", "TASKS.md"),
+      "## Phase 1: Setup\n\n- [ ] Implement setup\n\n**Verification:**\n- Verify setup\n\n## Phase 2: Finish\n\n- [ ] Implement finish\n\n**Verification:**\n- Verify finish\n",
+    );
+
+    await harness.runCommand("sprint:loop", "");
+    await harness.callTool("end_phase", { summary: "setup done" });
+
+    // Verify git was called: rev-parse, status, add, commit
+    assert.equal(harness.execCalls.length, 4);
+    assert.equal(harness.execCalls[0].command, "git");
+    assert.deepEqual(harness.execCalls[0].args, ["rev-parse", "--is-inside-work-tree"]);
+    assert.deepEqual(harness.execCalls[2].args, ["add", "-A"]);
+    assert.match(harness.execCalls[3].args[2], /Sprint 1 Phase 1/);
+  } finally {
+    await harness.cleanup();
+  }
+});
+
+test("sprint autoCommit disabled does not call git", async () => {
+  const harness = await createMoonpiHarness({ config: { ...defaultConfig, sprint: { contextAction: "clear", autoCommit: false } } });
+  try {
+    await mkdir(join(harness.cwd, "sprints", "1"), { recursive: true });
+    await writeFile(
+      join(harness.cwd, "sprints", "1", "TASKS.md"),
+      "## Phase 1: Setup\n\n- [ ] Implement setup\n\n**Verification:**\n- Verify setup\n\n## Phase 2: Finish\n\n- [ ] Implement finish\n\n**Verification:**\n- Verify finish\n",
+    );
+
+    await harness.runCommand("sprint:loop", "");
+    await harness.callTool("end_phase", { summary: "setup done" });
+
+    assert.equal(harness.execCalls.length, 0);
+  } finally {
+    await harness.cleanup();
+  }
+});
+
 test("session snapshots restore mode, todos, selected context files, and read guards", async () => {
   const first = await createMoonpiHarness({
     config: { contextFiles: { enabled: true, fileNames: ["README.md"], maxTotalBytes: 1000 }, guards: { cwdOnly: true, readBeforeWrite: true } },

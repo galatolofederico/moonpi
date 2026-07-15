@@ -358,13 +358,31 @@ The loop works like this:
 ./sprints/<sprint_number>/TASKS.md
 ```
 
-3. compact the conversation/context
-4. proceed to the next phase
+3. (optional) auto-commit changes with git
+4. transition the context (clear or compact) and proceed to the next phase
 5. repeat until the sprint is complete
 
 The model signals the end of a phase by calling a special `end_phase` tool.
 
 This keeps long-running projects simple, resumable, and grounded in actual files.
+
+#### Sprint configuration
+
+The sprint loop behavior is configurable via the `sprint` section in `moonpi.json`:
+
+```json
+{
+  "sprint": {
+    "contextAction": "clear",
+    "autoCommit": true
+  }
+}
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `sprint.contextAction` | `"clear"` | How the context transitions between phases. `"clear"` aggressively minimizes the previous conversation (near-fresh start, context files like SPECS.md are re-injected automatically). `"compact"` preserves a richer summary of the completed phase. |
+| `sprint.autoCommit` | `true` | When `true`, moonpi detects if the project uses git and automatically commits changes at the end of each completed phase with a message like `Sprint <n> Phase <id>: <summary>`. No commit is made if there are no changes or git is not initialized. |
 
 ### Does it work?
 
@@ -396,6 +414,10 @@ Configure `.pi/moonpi.json` (project) or `~/.pi/agent/moonpi.json` (global):
   },
   "wafer": {
     "enabled": true
+  },
+  "sprint": {
+    "contextAction": "clear",
+    "autoCommit": true
   },
   "contextFiles": {
     "enabled": true,

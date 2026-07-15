@@ -116,9 +116,67 @@ function markPhaseComplete(cwd: string, sprintNumber: number, phaseId: string, s
   return phase;
 }
 
-function continueAfterCompaction(pi: ExtensionAPI, ctx: ExtensionContext, prompt: string): void {
+// ---------------------------------------------------------------------------
+// Git auto-commit
+// ---------------------------------------------------------------------------
+
+async function isGitRepo(pi: ExtensionAPI, cwd: string): Promise<boolean> {
+  try {
+    const result = await pi.exec("git", ["rev-parse", "--is-inside-work-tree"], { cwd });
+    return result.code === 0;
+  } catch {
+    return false;
+  }
+}
+
+async function hasStagedOrUnstagedChanges(pi: ExtensionAPI, cwd: string): Promise<boolean> {
+  try {
+    // --porcelain output is empty when there are no changes
+    const result = await pi.exec("git", ["status", "--porcelain"], { cwd });
+    if (result.code !== 0) return false;
+    return result.stdout.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function gitAutoCommit(pi: ExtensionAPI, cwd: string, sprintNumber: number, phaseId: string, summary: string | undefined): Promise<void> {
+  if (!(await isGitRepo(pi, cwd))) return;
+  if (!(await hasStagedOrUnstagedChanges(pi, cwd))) return;
+
+  const commitSummary = summary ? summary.replace(/\n/g, " ").slice(0, 200) : "";
+  const commitMessage = commitSummary
+    ? `Sprint ${sprintNumber} Phase ${phaseId}: ${commitSummary}`
+    : `Sprint ${sprintNumber} Phase ${phaseId} complete`;
+
+  try {
+    await pi.exec("git", ["add", "-A"], { cwd });
+    await pi.exec("git", ["commit", "-m", commitMessage], { cwd });
+  } catch {
+    // Commit failures (e.g. pre-commit hooks, git identity not configured) are non-fatal.
+    // The sprint loop continues regardless.
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phase transition
+// ---------------------------------------------------------------------------
+
+const COMPACT_INSTRUCTIONS =
+  "Sprint loop completed one phase. Preserve the sprint goal, completed phase summary, and next phase instructions.";
+
+const CLEAR_INSTRUCTIONS =
+  "The previous sprint phase is complete. Produce a minimal summary (2-3 sentences) of what was accomplished. Do not include code, file contents, or implementation details. The next phase instructions will follow.";
+
+function continueAfterPhase(
+  pi: ExtensionAPI,
+  ctx: ExtensionContext,
+  controller: MoonpiController,
+  prompt: string,
+): void {
+  const useCompact = controller.config.sprint.contextAction === "compact";
   ctx.compact({
-    customInstructions: "Sprint loop completed one phase. Preserve the sprint goal, completed phase summary, and next phase instructions.",
+    customInstructions: useCompact ? COMPACT_INSTRUCTIONS : CLEAR_INSTRUCTIONS,
     onComplete: () => pi.sendUserMessage(prompt),
     onError: () => pi.sendUserMessage(prompt),
   });
@@ -187,7 +245,7 @@ Do not start implementing anything. Only create the sprint planning files.`,
   });
 
   pi.registerCommand("sprint:loop", {
-    description: "Execute the next incomplete phase in the latest sprint, compacting after each phase",
+    description: "Execute the next incomplete phase in the latest sprint, transitioning context after each phase",
     handler: async (_args, ctx) => {
       const sprints = listSprintNumbers(ctx.cwd);
       if (sprints.length === 0) {
@@ -234,7 +292,7 @@ Do not start implementing anything. Only create the sprint planning files.`,
     name: "end_phase",
     label: "end phase",
     description:
-      "Finish the active sprint phase. This marks the phase complete in TASKS.md, then compacts context and continues with the next phase.",
+      "Finish the active sprint phase. This marks the phase complete in TASKS.md, then transitions the context (clear or compact) and continues with the next phase.",
     promptSnippet: "Finish the active sprint phase",
     promptGuidelines: [
       "Use end_phase only when a sprint loop is active and the current sprint phase is complete.",
@@ -259,6 +317,11 @@ Do not start implementing anything. Only create the sprint planning files.`,
         };
       }
 
+      // Auto-commit with git if enabled
+      if (controller.config.sprint.autoCommit) {
+        await gitAutoCommit(pi, ctx.cwd, sprintNumber, phaseId, params.summary);
+      }
+
       const next = nextIncompletePhase(ctx.cwd, sprintNumber);
       if (!next) {
         controller.state.sprintLoop = undefined;
@@ -277,16 +340,18 @@ Do not start implementing anything. Only create the sprint planning files.`,
         sprintNumber,
         currentPhaseId: phaseId,
         pendingNextPhaseId: next.id,
+        phaseTransitioning: true,
       };
       controller.state.clearTodos();
       controller.state.setMode("sprint:plan");
       controller.applyMode(ctx);
       controller.persist();
+      const actionLabel = controller.config.sprint.contextAction === "compact" ? "compacted" : "cleared";
       return {
         content: [
           {
             type: "text",
-            text: `Phase ${phaseId} complete. Context will be compact and continue with phase ${next.id}.`,
+            text: `Phase ${phaseId} complete. Context will be ${actionLabel} and continue with phase ${next.id}.`,
           },
         ],
         details: { sprintNumber, completedPhaseId: phaseId, nextPhaseId: next.id },
@@ -307,13 +372,17 @@ Do not start implementing anything. Only create the sprint planning files.`,
       return;
     }
 
+    // Keep phaseTransitioning true so the generic agent_end handler in index.ts
+    // skips the sprint:plan/sprint:act transitions and the missing-TODO prompt.
+    // It is cleared in the input handler when the next phase prompt arrives.
     controller.state.sprintLoop = {
       sprintNumber: loop.sprintNumber,
       currentPhaseId: phase.id,
+      phaseTransitioning: true,
     };
     controller.state.setMode("sprint:plan");
     controller.applyMode(ctx);
     controller.persist();
-    continueAfterCompaction(pi, ctx, buildPhaseInstruction(loop.sprintNumber, phase));
+    continueAfterPhase(pi, ctx, controller, buildPhaseInstruction(loop.sprintNumber, phase));
   });
 }

@@ -15,6 +15,9 @@ export interface SprintLoopState {
   sprintNumber: number;
   currentPhaseId?: string;
   pendingNextPhaseId?: string;
+  /** True when end_phase has fired and we're waiting for agent_end to start the next phase.
+   *  Prevents the generic agent_end handler from sending the plan-mode-missing-TODO prompt. */
+  phaseTransitioning?: boolean;
 }
 
 export interface MoonpiSnapshot {
@@ -44,6 +47,12 @@ export interface MoonpiConfig {
   wafer: {
     /** Whether the Wafer provider is registered at startup. */
     enabled: boolean;
+  };
+  sprint: {
+    /** How the sprint loop transitions between phases: "clear" starts a fresh session, "compact" summarizes the conversation. */
+    contextAction: "clear" | "compact";
+    /** Whether to auto-commit changes with git at the end of each completed phase. */
+    autoCommit: boolean;
   };
   contextFiles: {
     enabled: boolean;
